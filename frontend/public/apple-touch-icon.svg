@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 180 180" width="180" height="180">
+  <!-- Background -->
+  <rect width="180" height="180" rx="40" fill="#111111"/>
+  <!-- Brand orange glow -->
+  <circle cx="90" cy="90" r="70" fill="rgba(244,117,32,0.12)"/>
+  <!-- Chart bars -->
+  <rect x="38" y="110" width="22" height="36" rx="4" fill="#f47520" opacity="0.55"/>
+  <rect x="68" y="86" width="22" height="60" rx="4" fill="#f47520" opacity="0.75"/>
+  <rect x="98" y="62" width="22" height="84" rx="4" fill="#f47520"/>
+  <rect x="128" y="38" width="22" height="108" rx="4" fill="#f47520" opacity="0.4"/>
+  <!-- Rising line -->
+  <polyline points="44,106 74,82 104,58 134,36" fill="none" stroke="#2db562" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>

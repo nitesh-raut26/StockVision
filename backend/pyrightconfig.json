@@ -1,0 +1,35 @@
+{
+  // Pyright / Pylance configuration for the FastAPI backend.
+  // This file lives in stockvision-app/backend/ and is loaded automatically
+  // by VS Code's Pylance extension and the pyright CLI.
+
+  // ── Interpreter ────────────────────────────────────────────────────────────
+  // venvPath is the DIRECTORY that contains the venv folder.
+  // venv is the NAME of the virtual-environment folder inside it.
+  "venvPath": ".",
+  "venv": "venv",
+
+  // ── Source roots ──────────────────────────────────────────────────────────
+  // "." means Pyright scans everything in backend/ as importable.
+  "include": ["."],
+  "exclude": [
+    "venv",
+    "__pycache__",
+    "alembic/versions",
+    "tests"
+  ],
+
+  // ── Type-check strictness ──────────────────────────────────────────────────
+  // "basic" catches real bugs without false positives on untyped third-party libs.
+  "typeCheckingMode": "basic",
+
+  // Suppress known-noisy warnings from dynamic FastAPI / SQLAlchemy patterns
+  "reportMissingModuleSource": "none",
+  "reportUnknownMemberType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownArgumentType": "none",
+
+  // ── Python version ─────────────────────────────────────────────────────────
+  "pythonVersion": "3.13",
+  "pythonPlatform": "Darwin"
+}

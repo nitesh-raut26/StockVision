@@ -1,0 +1,19 @@
+# Pyrefly configuration for the StockVision FastAPI backend.
+# Pyrefly is Meta's Python type checker VS Code extension.
+# This file tells it to use the project venv instead of system Python.
+
+# ── Interpreter ─────────────────────────────────────────────────────────────
+# Absolute path to the venv Python so Pyrefly finds all pip-installed packages.
+python_interpreter = "./venv/bin/python3"
+
+# ── Source root ──────────────────────────────────────────────────────────────
+# Pyrefly will type-check everything inside backend/
+project_includes = ["app"]
+
+# ── Ignore ───────────────────────────────────────────────────────────────────
+project_excludes = [
+  "venv",
+  "__pycache__",
+  "alembic/versions",
+  ".venv",
+]

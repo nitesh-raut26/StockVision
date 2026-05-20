@@ -1,0 +1,49 @@
+# Core
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+python-dotenv==1.0.1
+
+# Database
+sqlalchemy==2.0.36
+asyncpg==0.30.0
+alembic==1.14.0
+greenlet>=3.0.0
+
+# Auth & Security
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
+python-multipart==0.0.19
+cryptography>=42.0.0
+
+# Data & Finance
+yfinance==0.2.48
+pandas==2.2.3
+numpy==2.1.3
+httpx==0.28.0
+requests==2.32.3
+
+# Validation
+pydantic==2.10.2
+pydantic-settings==2.6.1
+email-validator==2.2.0
+
+# AI/ML
+scikit-learn==1.5.2
+scipy==1.14.1
+
+# Caching
+redis==5.2.0
+
+# Background scheduling
+apscheduler==3.10.4
+
+# Payments
+razorpay==1.4.2
+
+# CORS, rate limiting
+slowapi==0.1.9
+
+# Testing
+pytest==8.3.4
+pytest-asyncio==0.24.0
+httpx==0.28.0

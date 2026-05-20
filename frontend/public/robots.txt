@@ -1,0 +1,8 @@
+User-agent: *
+Allow: /
+Allow: /legal/
+Disallow: /app/
+Disallow: /onboarding
+Disallow: /login
+
+Sitemap: https://stockvision.in/sitemap.xml

@@ -1,0 +1,36 @@
+# Secrets — NEVER commit these
+backend/.env
+backend/.env.local
+backend/.env.production
+*.pem
+*.key
+*.p12
+
+# Python
+backend/venv/
+backend/__pycache__/
+backend/**/__pycache__/
+backend/**/*.pyc
+backend/.pytest_cache/
+backend/*.egg-info/
+backend/dist/
+
+# Node
+frontend/node_modules/
+frontend/dist/
+frontend/.vite/
+frontend/.env.local
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+*.swp
+
+# Vite & Tooling Cache
+.vite/
+.claude/
+

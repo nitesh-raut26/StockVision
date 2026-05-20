@@ -1,0 +1,49 @@
+{
+  "name": "StockVision — AI Stock Research",
+  "short_name": "StockVision",
+  "description": "AI-powered multi-broker portfolio analytics, DCF builder & screener for Indian retail investors.",
+  "start_url": "/app/dashboard",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#111111",
+  "theme_color": "#f47520",
+  "lang": "en-IN",
+  "dir": "ltr",
+  "scope": "/",
+  "categories": ["finance", "business"],
+  "icons": [
+    {
+      "src": "/favicon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "any"
+    },
+    {
+      "src": "/apple-touch-icon.svg",
+      "sizes": "any",
+      "type": "image/svg+xml",
+      "purpose": "maskable"
+    }
+  ],
+  "screenshots": [],
+  "shortcuts": [
+    {
+      "name": "Dashboard",
+      "short_name": "Dashboard",
+      "description": "View your portfolio dashboard",
+      "url": "/app/dashboard"
+    },
+    {
+      "name": "Stock Screener",
+      "short_name": "Screener",
+      "description": "Screen stocks with AI filters",
+      "url": "/app/screener"
+    },
+    {
+      "name": "Watchlist",
+      "short_name": "Watchlist",
+      "description": "Your saved watchlist",
+      "url": "/app/watchlist"
+    }
+  ]
+}

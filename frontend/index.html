@@ -1,0 +1,79 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+
+    <!-- Viewport: viewport-fit=cover extends bg under notch -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+
+    <!-- SEO -->
+    <meta name="description" content="StockVision — India's first AI-powered multi-broker stock research platform. Bloomberg Terminal for India's retail investor at ₹299/month." />
+    <title>StockVision — AI-Powered Stock Research for India</title>
+
+    <!-- PWA: theme colours -->
+    <meta name="theme-color" content="#111111" media="(prefers-color-scheme: dark)" />
+    <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)" />
+
+    <!-- PWA: manifest -->
+    <link rel="manifest" href="/manifest.json" />
+
+    <!-- PWA: iOS / Safari add-to-homescreen -->
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="StockVision" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.svg" />
+
+    <!-- PWA: Android / Chrome standalone -->
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="application-name" content="StockVision" />
+
+    <!-- Canonical -->
+    <link rel="canonical" href="https://stockvision.in/" />
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="StockVision — AI Stock Research for India" />
+    <meta property="og:description" content="AI-powered multi-broker portfolio analytics, DCF builder &amp; screener for Indian retail investors." />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://stockvision.in/" />
+    <meta property="og:image" content="https://stockvision.in/og-image.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:site_name" content="StockVision" />
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="StockVision — AI Stock Research for India" />
+    <meta name="twitter:description" content="Bloomberg Terminal for India's retail investor at ₹299/month." />
+    <meta name="twitter:image" content="https://stockvision.in/og-image.png" />
+
+    <!-- Structured data (FinTech SoftwareApplication) -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "SoftwareApplication",
+      "name": "StockVision",
+      "applicationCategory": "FinanceApplication",
+      "operatingSystem": "Web",
+      "offers": {
+        "@type": "Offer",
+        "price": "299",
+        "priceCurrency": "INR"
+      },
+      "description": "AI-powered Indian stock research platform with portfolio analytics, DCF builder, screener and multi-broker support."
+    }
+    </script>
+
+    <!-- Razorpay Checkout SDK — loaded early so it's ready when user clicks "Upgrade" -->
+    <script src="https://checkout.razorpay.com/v1/checkout.js" defer></script>
+
+    <!-- Fonts: preload critical weight, swap prevents FOIT -->
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap&display=swap" rel="stylesheet" />
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
