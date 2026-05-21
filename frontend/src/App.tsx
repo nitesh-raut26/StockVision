@@ -34,6 +34,7 @@ const NotFound        = lazy(() => import('./pages/NotFound'));
 const LegalPage       = lazy(() => import('./pages/LegalPage'));
 const DeveloperAPI    = lazy(() => import('./pages/DeveloperAPI'));
 const AIAssistant     = lazy(() => import('./pages/AIAssistant'));
+const Calculators     = lazy(() => import('./pages/Calculators'));
 
 const queryClient = new QueryClient({
   defaultOptions: {
@@ -114,6 +115,7 @@ export default function App() {
                   <Route path="ipo" element={<ErrorBoundary><IPOTracker /></ErrorBoundary>} />
                   <Route path="backtest" element={<ErrorBoundary><Backtesting /></ErrorBoundary>} />
                   <Route path="ai" element={<ErrorBoundary><AIAssistant /></ErrorBoundary>} />
+                  <Route path="calculators" element={<ErrorBoundary><Calculators /></ErrorBoundary>} />
                 </Route>
                 <Route path="/legal/:slug" element={<LegalPage />} />
                 <Route path="/developers" element={<DeveloperAPI />} />

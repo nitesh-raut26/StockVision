@@ -4,7 +4,7 @@ import {
   LayoutDashboard, SlidersHorizontal, TrendingUp, BarChart3, GitCompare,
   Wallet, Map, Target, Receipt, Trophy, BookOpen, Users, Briefcase,
   Settings, ChevronLeft, ChevronRight, LogOut, BarChart2, Star,
-  Layers, Rocket, History, Gift, Brain,
+  Layers, Rocket, History, Gift, Brain, Calculator,
 } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { useIsMobile } from '../../hooks/useBreakpoint';
@@ -36,8 +36,9 @@ const navGroups = [
       { path: '/app/watchlist',    icon: Star,    label: 'Watchlist'     },
       { path: '/app/mutual-funds', icon: Wallet,  label: 'Mutual Funds'  },
       { path: '/app/heatmap',      icon: Map,     label: 'Market Heatmap'},
-      { path: '/app/goals',        icon: Target,  label: 'Goal Planner'  },
-      { path: '/app/tax',          icon: Receipt, label: 'Tax & P&L'     },
+      { path: '/app/goals',         icon: Target,      label: 'Goal Planner'  },
+      { path: '/app/calculators',  icon: Calculator,  label: 'Calculators'   },
+      { path: '/app/tax',          icon: Receipt,     label: 'Tax & P&L'     },
     ],
   },
   {
