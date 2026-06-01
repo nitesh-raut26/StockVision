@@ -179,7 +179,10 @@ export default function Backtesting() {
                 </label>
                 <label style={{ display: 'grid', gap: 6, fontSize: 11.5, color: 'var(--tx-3)', fontWeight: 700 }}>
                   CAPITAL (₹)
-                  <input type="number" value={capital} onChange={e => setCapital(Number(e.target.value))} min={10000} step={10000}
+                  <input
+                    type="number" min={10000} step={10000}
+                    value={capital === 0 ? '' : capital}
+                    onChange={e => setCapital(e.target.value === '' ? 0 : Number(e.target.value))}
                     style={{ padding: '10px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--tx)', fontSize: 13.5, fontFamily: 'inherit' }} />
                 </label>
               </div>
@@ -215,7 +218,10 @@ export default function Backtesting() {
                       value={cond.op}
                       onChange={val => setConditions(cs => cs.map(c => c.id === cond.id ? { ...c, op: val as ConditionOp } : c))}
                     />
-                    <input type="number" value={cond.value} onChange={e => setConditions(cs => cs.map(c => c.id === cond.id ? { ...c, value: Number(e.target.value) } : c))}
+                    <input
+                      type="number"
+                      value={cond.value === 0 ? '' : cond.value}
+                      onChange={e => setConditions(cs => cs.map(c => c.id === cond.id ? { ...c, value: e.target.value === '' ? 0 : Number(e.target.value) } : c))}
                       style={{ padding: '7px 8px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-input)', color: 'var(--tx)', fontSize: 12, fontFamily: "'JetBrains Mono',monospace", textAlign: 'right' }} />
                     <button onClick={() => removeCondition(cond.id)}
                       style={{ width: 28, height: 28, borderRadius: 7, border: '1px solid var(--border)', background: 'transparent', color: 'var(--loss)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'inherit' }}>

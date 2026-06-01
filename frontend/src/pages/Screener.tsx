@@ -241,7 +241,7 @@ const AVAILABLE_FIELDS = [
 function ChangeCell({ val }: { val: number }) {
   const pos = val >= 0;
   return (
-    <td style={{ textAlign: 'right', padding: '12px 14px', fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: 12.5, color: pos ? '#00C896' : '#FF4D6A' }}>
+    <td style={{ textAlign: 'right', padding: '12px 14px', fontFamily: "'JetBrains Mono',monospace", fontWeight: 700, fontSize: 12.5, color: pos ? 'var(--gain)' : 'var(--loss)' }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
         {pos ? <ChevronUp size={11} /> : <ChevronDown size={11} />}{Math.abs(val).toFixed(2)}%
       </span>
@@ -250,7 +250,7 @@ function ChangeCell({ val }: { val: number }) {
 }
 
 function ScorePill({ score }: { score: number }) {
-  const color = score >= 8 ? '#00C896' : score >= 6 ? 'var(--brand)' : score >= 4 ? '#F5A623' : '#FF4D6A';
+  const color = score >= 8 ? 'var(--gain)' : score >= 6 ? 'var(--brand)' : score >= 4 ? '#F5A623' : 'var(--loss)';
   return (
     <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 99, background: `${color}18`, border: `1px solid ${color}40`, fontSize: 11.5, fontWeight: 700, color }}>
       {score.toFixed(1)}
@@ -599,9 +599,9 @@ export default function Screener() {
                           <ChangeCell val={s.changePct} />
                           <td style={{ textAlign: 'right', padding: '13px 14px' }}><ScorePill score={s.convictionScore} /></td>
                           <td style={{ textAlign: 'right', padding: '13px 14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 12.5, color: 'var(--tx-2)' }}>{s.pe ? s.pe.toFixed(1) : '—'}</td>
-                          <td style={{ textAlign: 'right', padding: '13px 14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 12.5, color: s.roce && s.roce > 15 ? '#00C896' : 'var(--tx-2)' }}>{s.roce ? s.roce.toFixed(1) + '%' : '—'}</td>
-                          <td style={{ textAlign: 'right', padding: '13px 14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 12.5, color: s.debtEquity != null && s.debtEquity < 0.5 ? '#00C896' : s.debtEquity != null && s.debtEquity > 2 ? '#FF4D6A' : 'var(--tx-2)' }}>{s.debtEquity != null ? s.debtEquity.toFixed(2) : '—'}</td>
-                          <td style={{ textAlign: 'right', padding: '13px 14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 12.5, fontWeight: 700, color: s.upside > 0 ? '#00C896' : '#FF4D6A' }}>{s.upside > 0 ? '+' : ''}{s.upside}%</td>
+                          <td style={{ textAlign: 'right', padding: '13px 14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 12.5, color: s.roce && s.roce > 15 ? 'var(--gain)' : 'var(--tx-2)' }}>{s.roce ? s.roce.toFixed(1) + '%' : '—'}</td>
+                          <td style={{ textAlign: 'right', padding: '13px 14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 12.5, color: s.debtEquity != null && s.debtEquity < 0.5 ? 'var(--gain)' : s.debtEquity != null && s.debtEquity > 2 ? 'var(--loss)' : 'var(--tx-2)' }}>{s.debtEquity != null ? s.debtEquity.toFixed(2) : '—'}</td>
+                          <td style={{ textAlign: 'right', padding: '13px 14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 12.5, fontWeight: 700, color: s.upside > 0 ? 'var(--gain)' : 'var(--loss)' }}>{s.upside > 0 ? '+' : ''}{s.upside}%</td>
                           <td style={{ textAlign: 'right', padding: '13px 14px', fontFamily: "'JetBrains Mono',monospace", fontSize: 12, color: 'var(--tx-3)' }}>
                             {s.marketCap ? `₹${(s.marketCap / 1000).toFixed(0)}K Cr` : '—'}
                           </td>
@@ -662,7 +662,7 @@ export default function Screener() {
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <Terminal size={14} color="var(--brand)" />
                     <span style={{ fontSize: 13, fontWeight: 700, color: 'var(--tx)' }}>Query Editor</span>
-                    <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 99, background: 'rgba(0,200,150,0.1)', color: '#00C896', fontWeight: 700 }}>LIVE</span>
+                    <span style={{ fontSize: 10.5, padding: '2px 8px', borderRadius: 99, background: 'rgba(34,197,94,0.10)', color: 'var(--gain)', fontWeight: 700 }}>LIVE</span>
                   </div>
                   <div style={{ display: 'flex', gap: 6 }}>
                     <button onClick={() => setQueryText('')}
@@ -698,7 +698,7 @@ export default function Screener() {
                     <div className="glass-card" style={{ overflow: 'hidden' }}>
                       <div style={{ padding: '13px 18px', borderBottom: '1px solid var(--border)', background: 'var(--bg-elevated)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#00C896', display: 'inline-block' }} />
+                          <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--gain)', display: 'inline-block' }} />
                           <span style={{ fontSize: 13, color: 'var(--tx)' }}>
                             Query matched <strong>{sorted.length}</strong> stocks
                           </span>
@@ -731,9 +731,9 @@ export default function Screener() {
                                 <ChangeCell val={s.changePct} />
                                 <td style={{ textAlign: 'right', padding: '11px 14px' }}><ScorePill score={s.convictionScore} /></td>
                                 <td style={{ textAlign: 'right', padding: '11px 14px', fontFamily: 'monospace', fontSize: 12.5, color: 'var(--tx-2)' }}>{s.pe?.toFixed(1) ?? '—'}</td>
-                                <td style={{ textAlign: 'right', padding: '11px 14px', fontFamily: 'monospace', fontSize: 12.5, color: s.roce && s.roce > 15 ? '#00C896' : 'var(--tx-2)' }}>{s.roce?.toFixed(1) ?? '—'}%</td>
+                                <td style={{ textAlign: 'right', padding: '11px 14px', fontFamily: 'monospace', fontSize: 12.5, color: s.roce && s.roce > 15 ? 'var(--gain)' : 'var(--tx-2)' }}>{s.roce?.toFixed(1) ?? '—'}%</td>
                                 <td style={{ textAlign: 'right', padding: '11px 14px', fontFamily: 'monospace', fontSize: 12.5, color: 'var(--tx-2)' }}>{s.debtEquity?.toFixed(2) ?? '—'}</td>
-                                <td style={{ textAlign: 'right', padding: '11px 14px', fontFamily: 'monospace', fontSize: 12.5, fontWeight: 700, color: s.upside > 0 ? '#00C896' : '#FF4D6A' }}>{s.upside > 0 ? '+' : ''}{s.upside}%</td>
+                                <td style={{ textAlign: 'right', padding: '11px 14px', fontFamily: 'monospace', fontSize: 12.5, fontWeight: 700, color: s.upside > 0 ? 'var(--gain)' : 'var(--loss)' }}>{s.upside > 0 ? '+' : ''}{s.upside}%</td>
                                 <td style={{ padding: '11px 14px' }}><span style={{ fontSize: 11, padding: '2px 8px', borderRadius: 6, background: 'var(--brand-dim)', color: 'var(--brand)', fontWeight: 600 }}>{s.sector}</span></td>
                               </motion.tr>
                             ))}
@@ -789,7 +789,7 @@ export default function Screener() {
                 <p style={{ fontSize: 13, color: 'var(--tx-3)' }}>Live prices via NYMEX / LME / CBOT · Updated daily</p>
               </div>
               <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#00C896', display: 'inline-block', boxShadow: '0 0 8px #00C896' }} />
+                <span style={{ width: 7, height: 7, borderRadius: '50%', background: 'var(--gain)', display: 'inline-block', boxShadow: '0 0 8px var(--gain)' }} />
                 <span style={{ fontSize: 12, color: 'var(--tx-3)' }}>Live</span>
               </div>
             </div>
@@ -804,7 +804,7 @@ export default function Screener() {
                   <div>
                     <p style={{ fontSize: 11.5, color: 'var(--tx-3)', fontWeight: 600, marginBottom: 4 }}>{c.label}</p>
                     <p style={{ fontSize: 17, fontWeight: 800, color: 'var(--tx)', fontFamily: "'JetBrains Mono',monospace", marginBottom: 2 }}>{c.val}</p>
-                    <p style={{ fontSize: 12, fontWeight: 700, color: c.up ? '#00C896' : '#FF4D6A', display: 'flex', alignItems: 'center', gap: 3 }}>
+                    <p style={{ fontSize: 12, fontWeight: 700, color: c.up ? 'var(--gain)' : 'var(--loss)', display: 'flex', alignItems: 'center', gap: 3 }}>
                       {c.up ? <TrendingUp size={11} /> : <TrendingDown size={11} />} {c.chg}
                     </p>
                   </div>
@@ -844,13 +844,13 @@ export default function Screener() {
                             <span style={{ fontSize: 11.5, padding: '3px 9px', borderRadius: 6, background: 'var(--surface-mid)', color: 'var(--tx-3)', fontWeight: 600 }}>{c.category}</span>
                           </td>
                           <td style={{ textAlign: 'right', padding: '13px 16px', fontFamily: "'JetBrains Mono',monospace", fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>{c.price.toLocaleString()}</td>
-                          <td style={{ textAlign: 'right', padding: '13px 16px', fontFamily: "'JetBrains Mono',monospace", fontSize: 13, fontWeight: 700, color: pos ? '#00C896' : '#FF4D6A' }}>
+                          <td style={{ textAlign: 'right', padding: '13px 16px', fontFamily: "'JetBrains Mono',monospace", fontSize: 13, fontWeight: 700, color: pos ? 'var(--gain)' : 'var(--loss)' }}>
                             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 2 }}>
                               {pos ? <ChevronUp size={11} /> : <ChevronDown size={11} />}{pos ? '+' : ''}{c.change}
                             </span>
                           </td>
                           <td style={{ textAlign: 'right', padding: '13px 16px' }}>
-                            <span style={{ fontSize: 12.5, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: pos ? 'rgba(0,200,150,0.1)' : 'rgba(255,77,106,0.1)', color: pos ? '#00C896' : '#FF4D6A' }}>
+                            <span style={{ fontSize: 12.5, fontWeight: 700, padding: '3px 9px', borderRadius: 99, background: pos ? 'rgba(34,197,94,0.10)' : 'rgba(239,68,68,0.10)', color: pos ? 'var(--gain)' : 'var(--loss)' }}>
                               {pos ? '+' : '-'}{pct}%
                             </span>
                           </td>
@@ -944,7 +944,7 @@ export default function Screener() {
                                     </td>
                                     <td style={{ textAlign: 'right', padding: '14px 16px', fontFamily: "'JetBrains Mono',monospace", fontSize: 14, fontWeight: 800, color: 'var(--tx)' }}>{r.holding}%</td>
                                     <td style={{ textAlign: 'right', padding: '14px 16px', fontFamily: "'JetBrains Mono',monospace", fontSize: 13, color: 'var(--tx-2)' }}>{r.shares.toLocaleString('en-IN')}</td>
-                                    <td style={{ textAlign: 'right', padding: '14px 16px', fontSize: 13, fontWeight: 700, color: flat ? 'var(--tx-3)' : up ? '#00C896' : '#FF4D6A' }}>
+                                    <td style={{ textAlign: 'right', padding: '14px 16px', fontSize: 13, fontWeight: 700, color: flat ? 'var(--tx-3)' : up ? 'var(--gain)' : 'var(--loss)' }}>
                                       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 3 }}>
                                         {!flat && (up ? <ChevronUp size={11} /> : <ChevronDown size={11} />)}
                                         {r.change}

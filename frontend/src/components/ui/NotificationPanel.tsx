@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { Bell, TrendingUp, AlertTriangle, Gift, Info, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { useIsMobile } from '../../hooks/useBreakpoint';
+import { TOPBAR_H } from '../layout/TopBar';
 
 type NotifType = 'price' | 'alert' | 'promo' | 'system';
 
@@ -40,6 +42,7 @@ function TypeIcon({ type }: { type: NotifType }) {
 export default function NotificationPanel() {
   const [open, setOpen]   = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>(INITIAL_NOTIFS);
+  const isMobile = useIsMobile();
 
   const unread      = notifs.filter(n => !n.read).length;
   const markAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, read: true })));
@@ -94,7 +97,19 @@ export default function NotificationPanel() {
               animate={{ opacity: 1, y: 0, scale: 1 }}
               exit={{ opacity: 0, y: -8, scale: 0.97 }}
               transition={{ duration: 0.14 }}
-              style={{
+              style={isMobile ? {
+                position: 'fixed',
+                top: TOPBAR_H.mobile + 6,
+                left: 8,
+                right: 8,
+                width: 'auto',
+                background: 'var(--bg-surface)',
+                border: '1px solid var(--border)',
+                borderRadius: 'var(--r-md)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.35)',
+                zIndex: 200,
+                overflow: 'hidden',
+              } : {
                 position: 'absolute', top: 42, right: 0,
                 width: 368,
                 background: 'var(--bg-surface)',

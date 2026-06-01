@@ -388,7 +388,7 @@ function SIPCalc() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="year" tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} interval={Math.max(0, Math.ceil(years / 5) - 1)} />
                   <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={36} tickFormatter={yAxis} />
-                  <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                  <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                   <Area type="monotone" dataKey="corpus"   name="Corpus"   stroke="#22c55e" fill="url(#sipC)" strokeWidth={2.5} dot={false} />
                   <Area type="monotone" dataKey="invested" name="Invested" stroke="#6366f1" fill="url(#sipI)" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
                 </AreaChart>
@@ -400,7 +400,7 @@ function SIPCalc() {
                   <Pie data={pie} cx="50%" cy="50%" innerRadius="45%" outerRadius="75%" dataKey="value" paddingAngle={2}>
                     {pie.map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Pie>
-                  <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                  <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -492,7 +492,7 @@ function SWPCalc() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="year" tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} />
                 <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={36} tickFormatter={yAxis} />
-                <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                 <Area type="monotone" dataKey="balance" name="Balance" stroke="#f59e0b" fill="url(#swpB)" strokeWidth={2.5} dot={false} />
               </AreaChart>
             </ResponsiveContainer>
@@ -554,15 +554,20 @@ function LumpsumCalc() {
                 <AreaChart data={res.chartData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <defs>
                     <linearGradient id="lsC" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.4} />
+                      <stop offset="5%"  stopColor="#22c55e" stopOpacity={0.3} />
+                      <stop offset="95%" stopColor="#22c55e" stopOpacity={0} />
+                    </linearGradient>
+                    <linearGradient id="lsI" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%"  stopColor="#6366f1" stopOpacity={0.15} />
                       <stop offset="95%" stopColor="#6366f1" stopOpacity={0} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="year" tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} interval={Math.max(0, Math.ceil(years / 5) - 1)} />
                   <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={36} tickFormatter={yAxis} />
-                  <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
-                  <Area type="monotone" dataKey="corpus" name="Corpus" stroke="#6366f1" fill="url(#lsC)" strokeWidth={2.5} dot={false} />
+                  <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
+                  <Area type="monotone" dataKey="corpus"   name="Corpus"    stroke="#22c55e" fill="url(#lsC)" strokeWidth={2.5} dot={false} />
+                  <Area type="monotone" dataKey="invested" name="Invested"  stroke="#6366f1" fill="url(#lsI)" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
                 </AreaChart>
               </ResponsiveContainer>
             </div>
@@ -572,7 +577,7 @@ function LumpsumCalc() {
                   <Pie data={pie} cx="50%" cy="50%" innerRadius="45%" outerRadius="75%" dataKey="value" paddingAngle={2}>
                     {pie.map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Pie>
-                  <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                  <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -669,7 +674,7 @@ function FDCalc() {
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="year" tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={36} tickFormatter={yAxis} />
-                  <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                  <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                   <Area type="monotone" dataKey="maturity" name="Maturity" stroke="#06b6d4" fill="url(#fdM)" strokeWidth={2.5} dot={false} />
                   <Area type="monotone" dataKey="principal" name="Principal" stroke="#6366f1" fill="none" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
                 </AreaChart>
@@ -681,7 +686,7 @@ function FDCalc() {
                   <Pie data={pie} cx="50%" cy="50%" innerRadius="45%" outerRadius="75%" dataKey="value" paddingAngle={2}>
                     {pie.map((e, i) => <Cell key={i} fill={e.color} />)}
                   </Pie>
-                  <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                  <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                 </PieChart>
               </ResponsiveContainer>
             </div>
@@ -756,7 +761,7 @@ function RDCalc() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="period" tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} interval={Math.max(0, Math.ceil(months / 3 / 6) - 1)} />
                 <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={36} tickFormatter={yAxis} />
-                <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                 <Bar dataKey="invested" name="Deposited" stackId="a" fill="#6366f1" radius={[0, 0, 0, 0]} />
                 <Bar dataKey="maturity" name="Maturity"  fill="#8b5cf6" radius={[4, 4, 0, 0]} />
               </BarChart>
@@ -830,7 +835,7 @@ function PPFCalc() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="year" tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} interval={Math.max(0, Math.ceil(years / 5) - 1)} />
                 <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={36} tickFormatter={yAxis} />
-                <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                 <Area type="monotone" dataKey="corpus"   name="Corpus"   stroke="#10b981" fill="url(#ppfC)" strokeWidth={2.5} dot={false} />
                 <Area type="monotone" dataKey="invested" name="Invested" stroke="#6366f1" fill="url(#ppfI)" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
               </AreaChart>
@@ -943,7 +948,7 @@ function EMICalc() {
                     <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                     <XAxis dataKey="year" tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} interval={Math.max(0, Math.ceil(tenure / 5) - 1)} />
                     <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={36} tickFormatter={yAxis} />
-                    <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                    <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                     <Bar dataKey="principal" name="Principal" stackId="a" fill="#6366f1" />
                     <Bar dataKey="interest"  name="Interest"  stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} />
                   </BarChart>
@@ -955,7 +960,7 @@ function EMICalc() {
                     <Pie data={pie} cx="50%" cy="50%" innerRadius="45%" outerRadius="75%" dataKey="value" paddingAngle={2}>
                       {pie.map((e, i) => <Cell key={i} fill={e.color} />)}
                     </Pie>
-                    <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                    <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -1047,7 +1052,7 @@ function RealEstateCalc() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="year" tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} interval={Math.max(0, Math.ceil(tenure / 5) - 1)} />
                 <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={40} tickFormatter={yAxis} />
-                <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                 <Area type="monotone" dataKey="propertyValue" name="Property Value"  stroke="#f97316" fill="url(#reV)" strokeWidth={2.5} dot={false} />
                 <Area type="monotone" dataKey="totalInvested" name="Total Invested"  stroke="#6366f1" fill="url(#reI)" strokeWidth={1.5} dot={false} strokeDasharray="4 3" />
               </AreaChart>
@@ -1158,7 +1163,7 @@ function CAGRCalc() {
                 <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                 <XAxis dataKey="year" tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} interval={Math.max(0, Math.ceil(years / 5) - 1)} />
                 <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={36} tickFormatter={yAxis} />
-                <Tooltip contentStyle={ttStyle} formatter={(v, n) => [fmt(+v), String(n)]} />
+                <Tooltip contentStyle={ttStyle} formatter={(v: unknown, n) => [fmt(Number(v)), String(n)]} />
                 <Area type="monotone" dataKey="value" name="Portfolio Value" stroke="#ec4899" fill="url(#cagrV)" strokeWidth={2.5} dot={false} />
               </AreaChart>
             </ResponsiveContainer>

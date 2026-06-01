@@ -30,34 +30,36 @@ def compute_tax_summary(holdings: list[dict], transactions: list[dict]) -> dict[
     sells = [t for t in transactions if t.get("action") == "SELL" and
              date.fromisoformat(str(t["transaction_date"])) >= fy_start]
 
-    buys_map: dict[str, list] = {}
-    for t in transactions:
+    # Build mutable FIFO lot queue per ticker (consumed across multiple sells)
+    buy_lots: dict[str, list[dict]] = {}
+    for t in sorted(transactions, key=lambda x: x["transaction_date"]):
         if t.get("action") == "BUY":
-            buys_map.setdefault(t["ticker"], []).append(t)
+            ticker_key = t["ticker"]
+            buy_lots.setdefault(ticker_key, []).append({
+                "price": float(t["price"]),
+                "buy_date": date.fromisoformat(str(t["transaction_date"])),
+                "remaining": int(t["qty"]),
+            })
 
-    for sell in sells:
+    for sell in sorted(sells, key=lambda x: x["transaction_date"]):
         ticker = sell["ticker"]
         sell_price = float(sell["price"])
         sell_qty = int(sell["qty"])
         sell_date = date.fromisoformat(str(sell["transaction_date"]))
 
-        # FIFO cost basis
-        cost_basis = 0.0
-        buy_date_used = None
+        # Consume lots FIFO, classifying each consumed portion independently
         remaining = sell_qty
-        for buy in sorted(buys_map.get(ticker, []), key=lambda x: x["transaction_date"]):
-            if remaining <= 0:
-                break
-            b_qty = min(int(buy["qty"]), remaining)
-            cost_basis += b_qty * float(buy["price"])
-            buy_date_used = date.fromisoformat(str(buy["transaction_date"]))
-            remaining -= b_qty
-
-        gain = (sell_price * sell_qty) - cost_basis
-        if buy_date_used and _is_long_term(buy_date_used, sell_date):
-            ltcg_gains += gain
-        else:
-            stcg_gains += gain
+        for lot in buy_lots.get(ticker, []):
+            if remaining <= 0 or lot["remaining"] <= 0:
+                continue
+            consumed = min(lot["remaining"], remaining)
+            lot_gain = consumed * (sell_price - lot["price"])
+            if _is_long_term(lot["buy_date"], sell_date):
+                ltcg_gains += lot_gain
+            else:
+                stcg_gains += lot_gain
+            lot["remaining"] -= consumed
+            remaining -= consumed
 
     # Unrealised gains / loss-harvesting suggestions
     harvesting_suggestions = []

@@ -4,6 +4,7 @@ import { Bell, UserPlus, Star } from 'lucide-react';
 import { mockLeaderboard } from '../data/mockData';
 import { fetchLeaderboard } from '../lib/api';
 import { useStore } from '../store/useStore';
+import { useIsMobile } from '../hooks/useBreakpoint';
 import Pagination from '../components/ui/Pagination';
 
 const PER_PAGE = 10;
@@ -24,6 +25,7 @@ const medalStyle = (rank: number) => {
 
 export default function Leaderboard() {
   const { authToken } = useStore();
+  const isMobile = useIsMobile();
   const [followed, setFollowed] = useState<string[]>([]);
   const [showAlert, setShowAlert] = useState<string | null>(null);
   const [page, setPage] = useState(1);
@@ -88,7 +90,7 @@ export default function Leaderboard() {
         </div>
       )}
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 320px', gap: 20 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 320px', gap: 20 }}>
         {/* Leaderboard table */}
         <div className="card" style={{ overflow: 'hidden' }}>
           <div style={{ padding: '18px 22px', borderBottom: '1px solid var(--border)' }}>

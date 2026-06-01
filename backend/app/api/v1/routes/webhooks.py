@@ -29,7 +29,11 @@ async def razorpay_webhook(request: Request, db: AsyncSession = Depends(get_db))
     signature = request.headers.get("X-Razorpay-Signature", "")
 
     if not settings.razorpay_webhook_secret:
-        logger.warning("RAZORPAY_WEBHOOK_SECRET not configured — skipping signature verification")
+        logger.error("RAZORPAY_WEBHOOK_SECRET not configured — rejecting webhook request")
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Webhook endpoint not configured",
+        )
     elif not signature:
         raise HTTPException(status_code=400, detail="Missing X-Razorpay-Signature header")
     elif not _verify_razorpay_signature(payload_bytes, signature, settings.razorpay_webhook_secret):
@@ -104,5 +108,24 @@ async def _handle_subscription_activated(event_data: dict, audit: SubscriptionEv
 
 
 async def _handle_subscription_cancelled(event_data: dict, audit: SubscriptionEvent, db: AsyncSession) -> None:
-    audit.status = "processed"
-    logger.info("subscription.cancelled")
+    from sqlalchemy import select
+    from app.models.user import User
+
+    try:
+        subscription = event_data.get("payload", {}).get("subscription", {}).get("entity", {})
+        notes = subscription.get("notes", {})
+        user_id = notes.get("user_id")
+
+        if user_id:
+            result = await db.execute(select(User).where(User.id == user_id))
+            user = result.scalar_one_or_none()
+            if user and user.plan != "free":
+                previous_plan = user.plan
+                user.plan = "free"
+                audit.user_id = user_id
+                logger.info("Downgraded user %s from %s to free on cancellation", user_id, previous_plan)
+
+        audit.status = "processed"
+    except Exception as exc:
+        logger.error("Error processing subscription.cancelled: %s", exc)
+        audit.status = "failed"

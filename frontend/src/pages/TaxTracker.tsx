@@ -468,15 +468,15 @@ export default function TaxTracker() {
               </div>
 
               {/* Footer actions */}
-              <div style={{ display: 'flex', gap: 10, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)' }}>
-                <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 'var(--r-sm)', background: 'var(--brand)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <Download size={13} /> Download ITR-2 Prefill JSON
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginTop: 20, paddingTop: 16, borderTop: '1px solid var(--border)', alignItems: 'center' }}>
+                <button style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 'var(--r-sm)', background: 'var(--brand)', border: 'none', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                  <Download size={12} /> Download ITR-2 JSON
                 </button>
-                <button style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '10px 20px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--tx-3)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
-                  <FileText size={13} /> Export Schedule 112A PDF
+                <button style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--tx-3)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                  <FileText size={12} /> Export 112A PDF
                 </button>
                 <button onClick={() => setShowITR(false)}
-                  style={{ marginLeft: 'auto', padding: '10px 20px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--tx-3)', fontSize: 13, cursor: 'pointer', fontFamily: 'inherit' }}>
+                  style={{ marginLeft: 'auto', padding: '7px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--tx-3)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>
                   Close
                 </button>
               </div>

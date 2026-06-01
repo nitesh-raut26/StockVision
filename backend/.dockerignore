@@ -1,0 +1,16 @@
+.env
+.env.*
+venv/
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+.ruff_cache/
+tests/
+alembic/versions/
+*.sqlite3
+.git/
+.github/
+README.md
+pyrefly.toml
+pyrightconfig.json

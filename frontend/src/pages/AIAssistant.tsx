@@ -302,19 +302,22 @@ async function* streamChat(
 
 function ReportCard({ report }: { report: Record<string, unknown> }) {
   const [open, setOpen] = useState(false);
+  const isMobile = useIsMobile();
   const rec   = String(report.recommendation ?? 'Hold');
   const score = Number(report.confidence_score ?? 0);
   const recColor = rec === 'Buy' ? 'var(--gain)' : rec === 'Sell' ? 'var(--loss)' : 'var(--gold)';
 
   return (
-    <div style={{ background: 'var(--bg-elevated)', borderRadius: 12, padding: '14px 16px', marginTop: 12, border: '1px solid var(--border)' }}>
-      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <FileText size={14} color="var(--brand)" />
-          <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--tx)' }}>AI Research Report — {String(report.ticker)}</span>
+    <div style={{ background: 'var(--bg-elevated)', borderRadius: 12, padding: isMobile ? '12px 14px' : '14px 16px', marginTop: 10, border: '1px solid var(--border)' }}>
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8, marginBottom: 10 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 7, minWidth: 0, flex: 1 }}>
+          <FileText size={13} color="var(--brand)" style={{ flexShrink: 0 }} />
+          <span style={{ fontSize: isMobile ? 12.5 : 13.5, fontWeight: 700, color: 'var(--tx)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+            {isMobile ? `Report — ${String(report.ticker)}` : `AI Research Report — ${String(report.ticker)}`}
+          </span>
         </div>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, fontWeight: 700, padding: '3px 10px', borderRadius: 8, background: `${recColor}15`, color: recColor, border: `1px solid ${recColor}40` }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}>
+          <span style={{ fontSize: 11.5, fontWeight: 700, padding: '3px 8px', borderRadius: 8, background: `${recColor}15`, color: recColor, border: `1px solid ${recColor}40`, whiteSpace: 'nowrap' }}>
             {rec}
           </span>
           <button onClick={() => setOpen(v => !v)}
@@ -324,7 +327,7 @@ function ReportCard({ report }: { report: Record<string, unknown> }) {
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 8, marginBottom: open ? 16 : 0 }}>
+      <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(1, 1fr)' : 'repeat(3, 1fr)', gap: 8, marginBottom: open ? 16 : 0 }}>
         {[
           { label: '12M Target', value: `₹${Number(report.target_price_12m ?? 0).toLocaleString('en-IN')}` },
           { label: 'Confidence',  value: `${score}/10` },
@@ -354,14 +357,14 @@ function ReportCard({ report }: { report: Record<string, unknown> }) {
                 <div style={{ fontSize: 12, fontWeight: 700, color: section.color, marginBottom: 4 }}>{section.title}</div>
                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                   {items.map((item, i) => (
-                    <li key={i} style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.55, marginBottom: 3 }}>{item}</li>
+                    <li key={i} style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.55, marginBottom: 3 }}>{String(item)}</li>
                   ))}
                 </ul>
               </div>
             ) : null;
           })}
 
-          {report.valuation_analysis && (
+          {!!report.valuation_analysis && (
             <div>
               <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--tx-3)', marginBottom: 4 }}>📊 Valuation</div>
               <p style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.55, margin: 0 }}>{String(report.valuation_analysis)}</p>
@@ -512,50 +515,86 @@ export default function AIAssistant() {
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0, transition: { duration: 0.4 } }}
-      style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'calc(100vh - 120px)' : 'calc(100vh - 80px)', maxWidth: 860, width: '100%' }}
+      style={{ display: 'flex', flexDirection: 'column', height: isMobile ? 'calc(100dvh - 210px)' : 'calc(100vh - 80px)', maxWidth: 860, width: '100%' }}
     >
       {/* ── Header ──────────────────────────────────────────────── */}
-      <div className="glass-card" style={{ padding: '14px 20px', marginBottom: 12, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
-          <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, #f47520, #e53935)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <Brain size={18} color="#fff" />
-          </div>
-          <div>
-            <h1 style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)', margin: 0, letterSpacing: '-0.01em' }}>StockVision AI</h1>
-            <p style={{ fontSize: 11.5, color: 'var(--tx-3)', margin: 0 }}>
-              Powered by Claude {model === 'claude-sonnet-4-5' ? 'Sonnet' : 'Haiku'} · Indian Market Expert
-            </p>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-          {/* Model selector — pro/enterprise only */}
-          {(plan === 'pro' || plan === 'enterprise') && (
-            <div style={{ display: 'flex', gap: 2, background: 'var(--bg-elevated)', borderRadius: 8, padding: 3, border: '1px solid var(--border)' }}>
-              {(['claude-haiku-4-5', 'claude-sonnet-4-5'] as const).map(m => (
-                <button key={m} onClick={() => setModel(m)}
-                  style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: model === m ? 'var(--brand-dim)' : 'transparent', color: model === m ? 'var(--brand)' : 'var(--tx-3)', transition: 'all 150ms', fontFamily: 'inherit' }}>
-                  {m === 'claude-haiku-4-5' ? 'Haiku · Fast' : 'Sonnet · Deep'}
-                </button>
-              ))}
+      <div className="glass-card" style={{ padding: isMobile ? '10px 14px' : '14px 20px', marginBottom: 10, flexShrink: 0 }}>
+        {isMobile ? (
+          /* ── Mobile: title row + controls row ── */
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {/* Title row — full width, no competition */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <div style={{ width: 30, height: 30, borderRadius: 9, background: 'linear-gradient(135deg, #f47520, #e53935)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Brain size={14} color="#fff" />
+              </div>
+              <h1 style={{ fontSize: 14, fontWeight: 800, color: 'var(--tx)', margin: 0, letterSpacing: '-0.01em' }}>StockVision AI</h1>
             </div>
-          )}
-
-          {/* Report generator button */}
-          <button onClick={() => setShowReport(v => !v)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--tx-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
-            <FileText size={13} />
-            AI Report
-          </button>
-
-          {/* Usage counter */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '5px 10px', borderRadius: 8, background: isAtLimit ? 'rgba(229,57,53,0.08)' : 'var(--bg-elevated)', border: `1px solid ${isAtLimit ? 'rgba(229,57,53,0.3)' : 'var(--border)'}` }}>
-            <Zap size={12} color={isAtLimit ? 'var(--loss)' : 'var(--brand)'} />
-            <span style={{ fontSize: 11.5, fontWeight: 700, color: isAtLimit ? 'var(--loss)' : 'var(--tx-2)' }}>
-              {remaining}/{planLimit === 999999 ? '∞' : planLimit}
-            </span>
+            {/* Controls row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+              {/* Model selector (pro/enterprise only) — takes available space */}
+              {(plan === 'pro' || plan === 'enterprise') && (
+                <div style={{ display: 'flex', flex: 1, gap: 2, background: 'var(--bg-elevated)', borderRadius: 8, padding: 3, border: '1px solid var(--border)' }}>
+                  {(['claude-haiku-4-5', 'claude-sonnet-4-5'] as const).map(m => (
+                    <button key={m} onClick={() => setModel(m)}
+                      style={{ flex: 1, padding: '4px 8px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: model === m ? 'var(--brand-dim)' : 'transparent', color: model === m ? 'var(--brand)' : 'var(--tx-3)', transition: 'all 150ms', fontFamily: 'inherit', whiteSpace: 'nowrap', textAlign: 'center' }}>
+                      {m === 'claude-haiku-4-5' ? 'Haiku · Fast' : 'Sonnet · Deep'}
+                    </button>
+                  ))}
+                </div>
+              )}
+              {/* Report button — icon only */}
+              <button onClick={() => setShowReport(v => !v)} title="AI Report"
+                style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px 10px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--tx-2)', cursor: 'pointer', flexShrink: 0 }}>
+                <FileText size={14} />
+              </button>
+              {/* Usage counter */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: 4, padding: '5px 8px', borderRadius: 8, background: isAtLimit ? 'rgba(229,57,53,0.08)' : 'var(--bg-elevated)', border: `1px solid ${isAtLimit ? 'rgba(229,57,53,0.3)' : 'var(--border)'}`, flexShrink: 0 }}>
+                <Zap size={10} color={isAtLimit ? 'var(--loss)' : 'var(--brand)'} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: isAtLimit ? 'var(--loss)' : 'var(--tx-2)' }}>
+                  {remaining}/{planLimit === 999999 ? '∞' : planLimit}
+                </span>
+              </div>
+            </div>
           </div>
-        </div>
+        ) : (
+          /* ── Desktop: single row ── */
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 10 }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+              <div style={{ width: 38, height: 38, borderRadius: 12, background: 'linear-gradient(135deg, #f47520, #e53935)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+                <Brain size={18} color="#fff" />
+              </div>
+              <div>
+                <h1 style={{ fontSize: 15, fontWeight: 800, color: 'var(--tx)', margin: 0, letterSpacing: '-0.01em' }}>StockVision AI</h1>
+                <p style={{ fontSize: 11.5, color: 'var(--tx-3)', margin: 0 }}>
+                  Powered by Claude {model === 'claude-sonnet-4-5' ? 'Sonnet' : 'Haiku'} · Indian Market Expert
+                </p>
+              </div>
+            </div>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexShrink: 0 }}>
+              {(plan === 'pro' || plan === 'enterprise') && (
+                <div style={{ display: 'flex', gap: 2, background: 'var(--bg-elevated)', borderRadius: 8, padding: 3, border: '1px solid var(--border)' }}>
+                  {(['claude-haiku-4-5', 'claude-sonnet-4-5'] as const).map(m => (
+                    <button key={m} onClick={() => setModel(m)}
+                      style={{ padding: '4px 10px', borderRadius: 6, fontSize: 11, fontWeight: 600, cursor: 'pointer', border: 'none', background: model === m ? 'var(--brand-dim)' : 'transparent', color: model === m ? 'var(--brand)' : 'var(--tx-3)', transition: 'all 150ms', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+                      {m === 'claude-haiku-4-5' ? 'Haiku · Fast' : 'Sonnet · Deep'}
+                    </button>
+                  ))}
+                </div>
+              )}
+              <button onClick={() => setShowReport(v => !v)} title="AI Report"
+                style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '7px 12px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--tx-2)', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                <FileText size={13} />
+                AI Report
+              </button>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 10px', borderRadius: 8, background: isAtLimit ? 'rgba(229,57,53,0.08)' : 'var(--bg-elevated)', border: `1px solid ${isAtLimit ? 'rgba(229,57,53,0.3)' : 'var(--border)'}` }}>
+                <Zap size={11} color={isAtLimit ? 'var(--loss)' : 'var(--brand)'} />
+                <span style={{ fontSize: 11, fontWeight: 700, color: isAtLimit ? 'var(--loss)' : 'var(--tx-2)' }}>
+                  {remaining}/{planLimit === 999999 ? '∞' : planLimit}
+                </span>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* ── Report Generator Panel ─────────────────────────────────── */}
@@ -566,39 +605,43 @@ export default function AIAssistant() {
             animate={{ opacity: 1, height: 'auto' }}
             exit={{ opacity: 0, height: 0 }}
             className="glass-card"
-            style={{ padding: '14px 18px', marginBottom: 12, flexShrink: 0, overflow: 'hidden' }}
+            style={{ padding: isMobile ? '12px 14px' : '14px 18px', marginBottom: 10, flexShrink: 0, overflow: 'hidden' }}
           >
-            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-              <BarChart3 size={14} color="var(--brand)" />
-              <span style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--tx)' }}>AI Research Report Generator</span>
+            {/* Header row */}
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 10, flexWrap: 'wrap' }}>
+              <BarChart3 size={13} color="var(--brand)" />
+              <span style={{ fontSize: isMobile ? 12.5 : 13.5, fontWeight: 700, color: 'var(--tx)' }}>AI Research Report Generator</span>
               {(plan === 'pro' || plan === 'enterprise') && (
-                <span style={{ fontSize: 10.5, fontWeight: 700, padding: '2px 8px', borderRadius: 99, background: 'rgba(244,117,32,0.12)', color: 'var(--brand)', border: '1px solid var(--border-brand)' }}>DEEP ANALYSIS</span>
+                <span style={{ fontSize: 10, fontWeight: 700, padding: '2px 7px', borderRadius: 99, background: 'rgba(244,117,32,0.12)', color: 'var(--brand)', border: '1px solid var(--border-brand)', whiteSpace: 'nowrap' }}>DEEP ANALYSIS</span>
               )}
             </div>
-            <div style={{ display: 'flex', gap: 8 }}>
+            {/* Input + button — stacks on mobile */}
+            <div style={{ display: 'flex', flexDirection: isMobile ? 'column' : 'row', gap: 8 }}>
               <input
                 value={reportTicker}
                 onChange={e => setReportTicker(e.target.value.toUpperCase())}
                 onKeyDown={e => e.key === 'Enter' && generateReport()}
-                placeholder="NSE ticker (e.g. RELIANCE, TCS, INFY)"
-                style={{ flex: 1, padding: '9px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--tx)', fontSize: 13.5, fontFamily: 'inherit', outline: 'none' }}
+                placeholder={isMobile ? 'NSE ticker (e.g. RELIANCE)' : 'NSE ticker (e.g. RELIANCE, TCS, INFY)'}
+                style={{ flex: 1, padding: isMobile ? '9px 12px' : '9px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--tx)', fontSize: isMobile ? 13 : 13.5, fontFamily: 'inherit', outline: 'none' }}
               />
               <button onClick={generateReport} disabled={report.loading || !reportTicker}
                 className="btn-primary"
-                style={{ padding: '9px 18px', fontSize: 13, display: 'flex', alignItems: 'center', gap: 6, opacity: (report.loading || !reportTicker) ? 0.6 : 1 }}>
+                style={{ padding: isMobile ? '10px 0' : '9px 18px', fontSize: 13, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 6, opacity: (report.loading || !reportTicker) ? 0.6 : 1, width: isMobile ? '100%' : 'auto' }}>
                 {report.loading ? <Loader2 size={14} className="spin" /> : <Sparkles size={14} />}
-                {report.loading ? 'Generating…' : 'Generate'}
+                {report.loading ? 'Generating…' : 'Generate Report'}
               </button>
             </div>
             {report.error && (
-              <div style={{ marginTop: 8, fontSize: 12.5, color: 'var(--loss)', display: 'flex', alignItems: 'center', gap: 6 }}>
-                <AlertCircle size={13} /> {report.error}
+              <div style={{ marginTop: 8, fontSize: 12, color: 'var(--loss)', display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertCircle size={12} /> {report.error}
               </div>
             )}
-            <p style={{ fontSize: 11.5, color: 'var(--tx-3)', marginTop: 8, lineHeight: 1.5 }}>
-              Generates structured analysis: summary · bull/bear thesis · valuation · technicals · 12M target.
-              {plan === 'free' && ' Upgrade to Pro for deep analysis with full financial models.'}
-            </p>
+            {!isMobile && (
+              <p style={{ fontSize: 11.5, color: 'var(--tx-3)', marginTop: 8, lineHeight: 1.5, margin: '8px 0 0' }}>
+                Generates structured analysis: summary · bull/bear thesis · valuation · technicals · 12M target.
+                {plan === 'free' && ' Upgrade to Pro for deep analysis with full financial models.'}
+              </p>
+            )}
           </motion.div>
         )}
       </AnimatePresence>
@@ -615,25 +658,65 @@ export default function AIAssistant() {
 
         {/* Welcome screen when no messages */}
         {!messages.length && (
-          <div style={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', padding: '40px 20px', gap: 24, textAlign: 'center' }}>
-            <div style={{ width: 64, height: 64, borderRadius: 20, background: 'linear-gradient(135deg, rgba(244,117,32,0.2), rgba(229,57,53,0.15))', border: '1px solid rgba(244,117,32,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <Brain size={28} color="var(--brand)" />
+          <div style={{
+            flex: 1,
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            justifyContent: 'center',
+            padding: isMobile ? '8px 4px' : '40px 20px',
+            gap: isMobile ? 10 : 24,
+            textAlign: 'center',
+            overflow: 'hidden',
+          }}>
+            {/* Brain icon — smaller on mobile */}
+            <div style={{
+              width: isMobile ? 42 : 64,
+              height: isMobile ? 42 : 64,
+              borderRadius: isMobile ? 13 : 20,
+              background: 'linear-gradient(135deg, rgba(244,117,32,0.2), rgba(229,57,53,0.15))',
+              border: '1px solid rgba(244,117,32,0.3)',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              flexShrink: 0,
+            }}>
+              <Brain size={isMobile ? 19 : 28} color="var(--brand)" />
             </div>
-            <div>
-              <h2 style={{ fontSize: 20, fontWeight: 900, color: 'var(--tx)', margin: '0 0 8px', letterSpacing: '-0.02em' }}>Ask Me Anything</h2>
-              <p style={{ fontSize: 14, color: 'var(--tx-3)', margin: 0, lineHeight: 1.6, maxWidth: 400 }}>
-                I have access to real-time NSE prices, fundamentals, and technical signals.
-                Use <code style={{ background: 'var(--bg-elevated)', padding: '1px 5px', borderRadius: 4, fontSize: 13 }}>$TICKER</code> to reference any stock.
+
+            {/* Title + description */}
+            <div style={{ maxWidth: isMobile ? 320 : 400 }}>
+              <h2 style={{ fontSize: isMobile ? 16 : 20, fontWeight: 900, color: 'var(--tx)', margin: isMobile ? '0 0 4px' : '0 0 8px', letterSpacing: '-0.02em' }}>
+                Ask Me Anything
+              </h2>
+              <p style={{ fontSize: isMobile ? 12 : 14, color: 'var(--tx-3)', margin: 0, lineHeight: isMobile ? 1.5 : 1.6 }}>
+                {isMobile
+                  ? <>Real-time NSE prices, fundamentals & signals. Use <code style={{ background: 'var(--bg-elevated)', padding: '1px 4px', borderRadius: 3, fontSize: 11 }}>$TICKER</code> for any stock.</>
+                  : <>I have access to real-time NSE prices, fundamentals, and technical signals. Use <code style={{ background: 'var(--bg-elevated)', padding: '1px 5px', borderRadius: 4, fontSize: 13 }}>$TICKER</code> to reference any stock.</>
+                }
               </p>
             </div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 600 }}>
+
+            {/* Quick prompt buttons */}
+            <div style={isMobile
+              ? { display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 6, width: '100%' }
+              : { display: 'flex', flexWrap: 'wrap', gap: 8, justifyContent: 'center', maxWidth: 600 }
+            }>
               {QUICK_PROMPTS.map(qp => (
                 <button key={qp.label} onClick={() => sendMessage(qp.prompt)}
-                  style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '8px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--tx-2)', fontSize: 12.5, fontWeight: 500, cursor: 'pointer', transition: 'all 150ms', fontFamily: 'inherit' }}
+                  style={{
+                    display: 'flex', alignItems: 'center', gap: 5,
+                    padding: isMobile ? '7px 8px' : '8px 14px',
+                    borderRadius: isMobile ? 9 : 10,
+                    border: '1px solid var(--border)',
+                    background: 'var(--bg-card)',
+                    color: 'var(--tx-2)',
+                    fontSize: isMobile ? 11.5 : 12.5,
+                    fontWeight: 500, cursor: 'pointer', transition: 'all 150ms',
+                    fontFamily: 'inherit', textAlign: 'left',
+                  }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-brand)'; e.currentTarget.style.color = 'var(--brand)'; e.currentTarget.style.background = 'var(--brand-dim)'; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--tx-2)'; e.currentTarget.style.background = 'var(--bg-card)'; }}>
-                  <span>{qp.icon}</span>
-                  <span>{qp.label}</span>
+                  <span style={{ fontSize: isMobile ? 13 : 14 }}>{qp.icon}</span>
+                  <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{qp.label}</span>
                 </button>
               ))}
             </div>
@@ -776,7 +859,9 @@ export default function AIAssistant() {
             placeholder={
               isAtLimit
                 ? `Upgrade to ${plan === 'free' ? 'Premium' : 'Pro'} for more messages…`
-                : 'Ask about any NSE stock — e.g. "Is TCS undervalued?" or "Explain MACD"…'
+                : isMobile
+                  ? 'Ask about any NSE stock…'
+                  : 'Ask about any NSE stock — e.g. "Is TCS undervalued?" or "Explain MACD"…'
             }
             rows={1}
             style={{

@@ -1,7 +1,7 @@
 import { useDeferredValue, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
-import { Search, Globe, Menu } from 'lucide-react';
+import { Search, Globe, Menu, ChevronLeft } from 'lucide-react';
 import { useStore } from '../../store/useStore';
 import { fetchIndices, searchMarket } from '../../lib/api';
 import { useIsMobile } from '../../hooks/useBreakpoint';
@@ -16,6 +16,7 @@ export default function TopBar() {
   const { user, language, setLanguage, sidebarOpen, setSidebarOpen } = useStore();
   const [search, setSearch]               = useState('');
   const [searchFocused, setSearchFocused] = useState(false);
+  const [searchExpanded, setSearchExpanded] = useState(false);
   const deferredSearch = useDeferredValue(search.trim());
   const sidebarW = isMobile ? 0 : (sidebarOpen ? 240 : 60);
 
@@ -191,24 +192,102 @@ export default function TopBar() {
         {/* ── Right: search + lang + avatar ────────────────────── */}
         <div style={{ display: 'flex', alignItems: 'center', gap: isMobile ? 8 : 10, flexShrink: 0 }}>
 
-          {/* Search */}
-          <form onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
+          {/* Search: icon-only on mobile → expands overlay; full input on desktop */}
+          {isMobile ? (
+            <button type="button" aria-label="Open search"
+              onClick={() => setSearchExpanded(true)}
+              style={iconBtnStyle}>
+              <Search size={16} />
+            </button>
+          ) : (
+            <form onSubmit={handleSearchSubmit} style={{ position: 'relative' }}>
+              <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--tx-3)', pointerEvents: 'none' }} />
+              <input
+                value={search}
+                onChange={event => setSearch(event.target.value)}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => window.setTimeout(() => setSearchFocused(false), 140)}
+                placeholder="Search stocks, funds…"
+                style={{
+                  paddingLeft: 32, paddingRight: 14, paddingTop: 7, paddingBottom: 7,
+                  width: 220,
+                  fontSize: 13,
+                  background: 'var(--bg-card)',
+                  border: '1px solid var(--border)',
+                  borderRadius: 'var(--r-md)',
+                  color: 'var(--tx)',
+                  fontFamily: 'inherit',
+                }}
+              />
+              {searchFocused && deferredSearch.length >= 2 && (
+                <div className="search-popover">
+                  {searchQuery.isLoading && <div className="search-empty">Searching market data…</div>}
+                  {!searchQuery.isLoading && suggestions.length === 0 && <div className="search-empty">No matches found.</div>}
+                  {suggestions.map(result => (
+                    <button key={`${result.type}-${result.id}`} type="button"
+                      onMouseDown={event => event.preventDefault()}
+                      onClick={() => handleNavigate(result.path)}
+                      className="search-result">
+                      <span className="search-result-label">{result.label}</span>
+                      <span className="search-result-subtitle">{result.subtitle}</span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </form>
+          )}
+
+          {/* Notification bell */}
+          <NotificationPanel />
+
+          {/* Language toggle — icon-only on mobile to save space */}
+          <button onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
+            style={{ display: 'flex', alignItems: 'center', gap: 5, padding: isMobile ? '7px 9px' : '6px 12px', borderRadius: 'var(--r-md)', background: 'var(--bg-card)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--tx-2)', fontSize: 12.5, fontWeight: 600, transition: 'border-color 150ms', fontFamily: 'inherit' }}>
+            <Globe size={13} />
+            {!isMobile && (language === 'en' ? 'EN' : 'HI')}
+          </button>
+
+          {/* User avatar */}
+          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand-dim)', border: '1px solid var(--border-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, color: 'var(--brand)', cursor: 'pointer', flexShrink: 0, userSelect: 'none' }}>
+            {user?.name?.[0] ?? 'U'}
+          </div>
+        </div>
+      </div>
+
+      {/* ── Mobile: full-width search overlay (slides over main row) ── */}
+      {isMobile && searchExpanded && (
+        <div style={{
+          position: 'absolute', top: 0, left: 0, right: 0, height: 56,
+          background: 'var(--bg-surface)', display: 'flex', alignItems: 'center',
+          padding: '0 14px', gap: 10, zIndex: 10,
+        }}>
+          <button type="button" aria-label="Close search"
+            onClick={() => { setSearchExpanded(false); closeSearch(); }}
+            style={iconBtnStyle}>
+            <ChevronLeft size={16} />
+          </button>
+          <form
+            onSubmit={(e) => { handleSearchSubmit(e); setSearchExpanded(false); }}
+            style={{ position: 'relative', flex: 1 }}
+          >
             <Search size={14} style={{ position: 'absolute', left: 11, top: '50%', transform: 'translateY(-50%)', color: 'var(--tx-3)', pointerEvents: 'none' }} />
             <input
+              autoFocus
               value={search}
               onChange={event => setSearch(event.target.value)}
               onFocus={() => setSearchFocused(true)}
               onBlur={() => window.setTimeout(() => setSearchFocused(false), 140)}
-              placeholder={isMobile ? 'Search…' : 'Search stocks, funds…'}
+              placeholder="Search stocks, funds…"
               style={{
-                paddingLeft: 32, paddingRight: 14, paddingTop: 7, paddingBottom: 7,
-                width: isMobile ? 128 : 220,
-                fontSize: 13,
+                width: '100%', paddingLeft: 32, paddingRight: 14,
+                paddingTop: 8, paddingBottom: 8,
+                fontSize: 13.5,
                 background: 'var(--bg-card)',
-                border: '1px solid var(--border)',
+                border: '1px solid var(--border-brand)',
                 borderRadius: 'var(--r-md)',
                 color: 'var(--tx)',
                 fontFamily: 'inherit',
+                outline: 'none',
               }}
             />
             {searchFocused && deferredSearch.length >= 2 && (
@@ -218,7 +297,7 @@ export default function TopBar() {
                 {suggestions.map(result => (
                   <button key={`${result.type}-${result.id}`} type="button"
                     onMouseDown={event => event.preventDefault()}
-                    onClick={() => handleNavigate(result.path)}
+                    onClick={() => { handleNavigate(result.path); setSearchExpanded(false); }}
                     className="search-result">
                     <span className="search-result-label">{result.label}</span>
                     <span className="search-result-subtitle">{result.subtitle}</span>
@@ -227,23 +306,8 @@ export default function TopBar() {
               </div>
             )}
           </form>
-
-          {/* Notification bell */}
-          <NotificationPanel />
-
-          {/* Language toggle */}
-          <button onClick={() => setLanguage(language === 'en' ? 'hi' : 'en')}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: isMobile ? '6px 10px' : '6px 12px', borderRadius: 'var(--r-md)', background: 'var(--bg-card)', border: '1px solid var(--border)', cursor: 'pointer', color: 'var(--tx-2)', fontSize: 12.5, fontWeight: 600, transition: 'border-color 150ms', fontFamily: 'inherit' }}>
-            <Globe size={13} />
-            {language === 'en' ? 'EN' : 'HI'}
-          </button>
-
-          {/* User avatar */}
-          <div style={{ width: 32, height: 32, borderRadius: '50%', background: 'var(--brand-dim)', border: '1px solid var(--border-brand)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 12.5, fontWeight: 700, color: 'var(--brand)', cursor: 'pointer', flexShrink: 0, userSelect: 'none' }}>
-            {user?.name?.[0] ?? 'U'}
-          </div>
         </div>
-      </div>
+      )}
 
       {/* ── Mobile: scrolling indices ticker strip (28px) ─────────── */}
       {isMobile && (

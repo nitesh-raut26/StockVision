@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Link2, RefreshCw, Bell, CreditCard, Shield, CheckCircle, AlertCircle, Trash2, Plus, Eye, EyeOff, Key, X, Sun, Moon, Monitor, Zap } from 'lucide-react';
+import { Link2, RefreshCw, Bell, CreditCard, Shield, CheckCircle, AlertCircle, Trash2, Plus, Eye, EyeOff, Key, X, Sun, Moon, Monitor, Zap, Copy, Check } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useTheme } from '../hooks/useTheme';
 import { useIsMobile } from '../hooks/useBreakpoint';
@@ -51,6 +51,7 @@ export default function Settings() {
   const [biometric, setBiometric] = useState(true);
   const [twoFA, setTwoFA] = useState(false);
   const [showApiKey, setShowApiKey] = useState(false);
+  const [copiedKey,  setCopiedKey]  = useState(false);
   const [activeTab, setActiveTab] = useState<'brokers' | 'appearance' | 'alerts' | 'subscription' | 'security'>('brokers');
 
   // Account deletion state
@@ -754,14 +755,29 @@ export default function Settings() {
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>API Key (CA Portal)</h3>
             </div>
             <p style={{ fontSize: 13, color: 'var(--tx-3)', marginBottom: 14, lineHeight: 1.6 }}>Use this key to integrate StockVision data into your own tools. Keep it secret.</p>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <div style={{ flex: 1, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 14px', fontSize: 13, fontFamily: 'JetBrains Mono, monospace', color: 'var(--tx-2)' }}>
-                {showApiKey ? 'sv_live_k8j2mN4pQ7rX9sA3wE6tB1uI5oL0cH' : '•'.repeat(36)}
+            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+              <div style={{ flex: 1, minWidth: 0, background: 'var(--bg-elevated)', border: '1px solid var(--border)', borderRadius: 'var(--r-sm)', padding: '10px 14px', fontSize: 12.5, fontFamily: 'JetBrains Mono, monospace', color: 'var(--tx-2)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                {showApiKey ? 'sv_live_k8j2mN4pQ7rX9sA3wE6tB1uI5oL0cH' : '•'.repeat(30)}
               </div>
-              <button onClick={() => setShowApiKey(!showApiKey)} style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--tx-3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
-                {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
-              </button>
-              <button style={{ padding: '10px 18px', borderRadius: 'var(--r-sm)', background: 'var(--brand)', border: 'none', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer' }}>Regenerate</button>
+              <div style={{ display: 'flex', gap: 8, flexShrink: 0 }}>
+                <button
+                  title={showApiKey ? 'Hide key' : 'Show key'}
+                  onClick={() => setShowApiKey(!showApiKey)}
+                  style={{ padding: '10px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--tx-3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                  {showApiKey ? <EyeOff size={15} /> : <Eye size={15} />}
+                </button>
+                <button
+                  title="Copy API key"
+                  onClick={() => {
+                    navigator.clipboard.writeText('sv_live_k8j2mN4pQ7rX9sA3wE6tB1uI5oL0cH');
+                    setCopiedKey(true);
+                    setTimeout(() => setCopiedKey(false), 2000);
+                  }}
+                  style={{ padding: '10px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: copiedKey ? 'rgba(45,181,98,0.08)' : 'transparent', color: copiedKey ? 'var(--gain)' : 'var(--tx-3)', cursor: 'pointer', display: 'flex', alignItems: 'center', transition: 'all 150ms' }}>
+                  {copiedKey ? <Check size={15} /> : <Copy size={15} />}
+                </button>
+                <button style={{ padding: '10px 14px', borderRadius: 'var(--r-sm)', background: 'var(--brand)', border: 'none', color: '#fff', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}>Regenerate</button>
+              </div>
             </div>
             <p style={{ fontSize: 12, color: 'var(--tx-3)', marginTop: 8 }}>Regenerating invalidates your current key immediately.</p>
           </div>

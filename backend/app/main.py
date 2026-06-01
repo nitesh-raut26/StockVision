@@ -53,8 +53,24 @@ class SecurityHeadersMiddleware(BaseHTTPMiddleware):
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    """Startup: validate secrets, create tables, start background workers."""
+    """Startup: validate secrets, initialise Sentry, create tables, start workers."""
     settings.validate_production_secrets()
+
+    if settings.sentry_dsn:
+        try:
+            import sentry_sdk
+            from sentry_sdk.integrations.fastapi import FastApiIntegration
+            from sentry_sdk.integrations.sqlalchemy import SqlalchemyIntegration
+            sentry_sdk.init(
+                dsn=settings.sentry_dsn,
+                environment=settings.environment,
+                integrations=[FastApiIntegration(), SqlalchemyIntegration()],
+                traces_sample_rate=0.1,
+                send_default_pii=False,
+            )
+            logger.info("Sentry initialised (environment=%s)", settings.environment)
+        except ImportError:
+            logger.warning("sentry-sdk not installed — add it to requirements.txt")
     try:
         async with engine.begin() as conn:
             await conn.run_sync(Base.metadata.create_all)

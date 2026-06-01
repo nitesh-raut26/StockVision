@@ -72,6 +72,13 @@ class Settings(BaseSettings):
             errors.append("DATABASE_URL uses default dev credentials — set a strong password in production.")
         if not self.anthropic_api_key:
             errors.append("ANTHROPIC_API_KEY must be set in production to enable AI features.")
+        if not self.field_encryption_key:
+            errors.append(
+                "FIELD_ENCRYPTION_KEY must be set in production to encrypt PAN/broker tokens. "
+                "Generate with: python -c \"from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())\""
+            )
+        if not self.razorpay_webhook_secret:
+            errors.append("RAZORPAY_WEBHOOK_SECRET must be set in production to verify payment webhooks.")
         if errors:
             raise RuntimeError("Production security check failed:\n" + "\n".join(f"  • {e}" for e in errors))
         logger.info("Production security checks passed.")

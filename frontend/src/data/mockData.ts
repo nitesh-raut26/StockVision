@@ -144,7 +144,7 @@ export const mockLeaderboard = [
   { rank: 3, username: 'DeepValue_92', xirr: 68.4, portfolioValue: 24000000, percentile: 99.2, followers: 198 },
   { rank: 4, username: 'Momentum_18', xirr: 64.1, portfolioValue: 5600000, percentile: 99.0, followers: 156 },
   { rank: 5, username: 'SmallCap_77', xirr: 58.9, portfolioValue: 3200000, percentile: 98.7, followers: 134 },
-  { rank: 12, username: 'You (Nitesh_R)', xirr: 18.4, portfolioValue: 4842310, percentile: 88, followers: 12, isUser: true },
+  { rank: 12, username: 'You', xirr: 18.4, portfolioValue: 4842310, percentile: 88, followers: 12, isUser: true },
 ];
 
 export const mockResearchReports = [

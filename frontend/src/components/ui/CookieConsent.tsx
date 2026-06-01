@@ -32,7 +32,7 @@ interface ConsentPrefs {
 const DEFAULT_PREFS: ConsentPrefs = {
   analytics:   false,
   marketing:   false,
-  ai_analysis: true,
+  ai_analysis: false,
   saved_at:    0,
 };
 

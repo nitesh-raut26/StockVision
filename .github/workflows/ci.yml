@@ -13,7 +13,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: frontend
+        working-directory: stockvision-app/frontend
 
     steps:
       - uses: actions/checkout@v4
@@ -22,7 +22,7 @@ jobs:
         with:
           node-version: 20
           cache: npm
-          cache-dependency-path: frontend/package-lock.json
+          cache-dependency-path: stockvision-app/frontend/package-lock.json
 
       - name: Install dependencies
         run: npm ci
@@ -40,7 +40,6 @@ jobs:
         run: |
           echo "=== Bundle sizes ==="
           du -sh dist/assets/*.js 2>/dev/null | sort -rh | head -20
-          # Fail if any single chunk exceeds 600KB
           find dist/assets -name "*.js" -size +600k | while read f; do
             echo "FAIL: $f exceeds 600KB"
             exit 1
@@ -52,7 +51,7 @@ jobs:
     runs-on: ubuntu-latest
     defaults:
       run:
-        working-directory: backend
+        working-directory: stockvision-app/backend
 
     services:
       postgres:
@@ -60,7 +59,7 @@ jobs:
         env:
           POSTGRES_DB: stockvision_test
           POSTGRES_USER: stockvision
-          POSTGRES_PASSWORD: test
+          POSTGRES_PASSWORD: test_password_ci
         options: >-
           --health-cmd pg_isready
           --health-interval 10s
@@ -85,7 +84,7 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-          cache-dependency-path: backend/requirements.txt
+          cache-dependency-path: stockvision-app/backend/requirements.txt
 
       - name: Install dependencies
         run: pip install -r requirements.txt
@@ -93,21 +92,25 @@ jobs:
       - name: Ruff lint
         run: pip install ruff && ruff check app/
 
-      - name: Import check (verifies all modules load cleanly)
+      - name: Import check
         env:
-          DATABASE_URL: postgresql+asyncpg://stockvision:test@localhost:5432/stockvision_test
-          REDIS_URL: redis://localhost:6379
+          DATABASE_URL: postgresql+asyncpg://stockvision:test_password_ci@localhost:5432/stockvision_test
+          REDIS_URL: redis://localhost:6379/0
           JWT_SECRET_KEY: ci-test-secret-minimum-32-characters-long
           ENVIRONMENT: test
         run: python -c "from app.main import app; print('Import OK — routes:', len(app.routes))"
 
       - name: Run tests
         env:
-          DATABASE_URL: postgresql+asyncpg://stockvision:test@localhost:5432/stockvision_test
-          REDIS_URL: redis://localhost:6379
+          DATABASE_URL: postgresql+asyncpg://stockvision:test_password_ci@localhost:5432/stockvision_test
+          REDIS_URL: redis://localhost:6379/0
           JWT_SECRET_KEY: ci-test-secret-minimum-32-characters-long
           ENVIRONMENT: test
-        run: pytest tests/ -v --tb=short || echo "No tests yet — add tests/test_auth.py to start"
+        # Tests MUST pass — no silent || echo bypass
+        run: pytest tests/ -v --tb=short --strict-markers -x
+
+      - name: Dependency vulnerability scan
+        run: pip install pip-audit && pip-audit -r requirements.txt --ignore-vuln PYSEC-2022-42969
 
   # ── Docker build check ─────────────────────────────────────────────────────
   docker:
@@ -117,7 +120,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Build backend image
-        run: docker build -t stockvision-backend ./backend
+        run: docker build -t stockvision-backend ./stockvision-app/backend
 
       - name: Build frontend image
-        run: docker build -t stockvision-frontend ./frontend
+        run: docker build -t stockvision-frontend ./stockvision-app/frontend

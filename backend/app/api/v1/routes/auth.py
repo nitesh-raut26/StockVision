@@ -21,7 +21,10 @@ from app.services.auth_service import (
     build_demo_token_response,
 )
 from app.core.config import settings
-from app.core.security import create_refresh_token, decode_token
+from app.core.security import (
+    create_refresh_token, decode_token,
+    store_refresh_jti, verify_refresh_jti, rotate_refresh_jti, revoke_all_user_tokens,
+)
 
 logger = logging.getLogger(__name__)
 
@@ -108,7 +111,8 @@ async def register(body: UserCreate, response: Response, db: AsyncSession = Depe
                 raise HTTPException(status_code=409, detail="Email already registered")
         user = await create_user(db, body.name, str(body.email) if body.email else None, body.phone, body.password)
         token_data = build_token_response(user)
-        _jti, refresh = create_refresh_token(user.id)
+        jti, refresh = create_refresh_token(user.id)
+        await store_refresh_jti(user.id, jti)
         _set_auth_cookies(response, token_data["access_token"], refresh)
         return token_data
     except HTTPException:
@@ -116,7 +120,8 @@ async def register(body: UserCreate, response: Response, db: AsyncSession = Depe
     except Exception:
         if settings.demo_auth_enabled and settings.environment != "production":
             demo = build_demo_token_response(str(body.email) if body.email else None)
-            _jti, refresh = create_refresh_token("demo-user")
+            jti, refresh = create_refresh_token("demo-user")
+            await store_refresh_jti("demo-user", jti)
             _set_auth_cookies(response, demo["access_token"], refresh)
             return demo
         raise
@@ -133,7 +138,8 @@ async def login(body: UserLogin, request: Request, response: Response, db: Async
                 raise HTTPException(status_code=401, detail="Invalid credentials")
             await _clear_login_failures(str(body.email))
             token_data = build_token_response(user)
-            _jti, refresh = create_refresh_token(user.id)
+            jti, refresh = create_refresh_token(user.id)
+            await store_refresh_jti(user.id, jti)
             _set_auth_cookies(response, token_data["access_token"], refresh)
             return token_data
         except HTTPException:
@@ -141,7 +147,8 @@ async def login(body: UserLogin, request: Request, response: Response, db: Async
         except Exception:
             if settings.demo_auth_enabled and settings.environment != "production":
                 demo = build_demo_token_response(str(body.email))
-                _jti, refresh = create_refresh_token("demo-user")
+                jti, refresh = create_refresh_token("demo-user")
+                await store_refresh_jti("demo-user", jti)
                 _set_auth_cookies(response, demo["access_token"], refresh)
                 return demo
             raise
@@ -150,7 +157,7 @@ async def login(body: UserLogin, request: Request, response: Response, db: Async
 
 @router.post("/refresh", response_model=TokenResponse)
 async def refresh_token(request: Request, response: Response, db: AsyncSession = Depends(get_db)):
-    """Issue a new access token using the refresh token cookie."""
+    """Issue a new access token using the refresh token cookie. Rotates the refresh token."""
     token = request.cookies.get(_REFRESH_COOKIE)
     if not token:
         raise HTTPException(status_code=401, detail="No refresh token")
@@ -160,21 +167,30 @@ async def refresh_token(request: Request, response: Response, db: AsyncSession =
         if payload.get("type") != "refresh":
             raise ValueError("Not a refresh token")
         user_id: str = payload["sub"]
+        old_jti: str = payload.get("jti", "")
     except (ValueError, KeyError):
         raise HTTPException(status_code=401, detail="Invalid refresh token")
 
     if user_id == "demo-user" and settings.demo_auth_enabled:
         demo = build_demo_token_response()
-        _jti, new_refresh = create_refresh_token("demo-user")
+        new_jti, new_refresh = create_refresh_token("demo-user")
+        await rotate_refresh_jti(old_jti, new_jti, "demo-user")
         _set_auth_cookies(response, demo["access_token"], new_refresh)
         return demo
+
+    # Verify JTI is still valid (not revoked)
+    if old_jti:
+        stored_user_id = await verify_refresh_jti(old_jti)
+        if stored_user_id is None:
+            raise HTTPException(status_code=401, detail="Refresh token has been revoked")
 
     user = await get_user_by_id(db, user_id)
     if not user:
         raise HTTPException(status_code=401, detail="User not found")
 
     token_data = build_token_response(user)
-    _jti, new_refresh = create_refresh_token(user.id)
+    new_jti, new_refresh = create_refresh_token(user.id)
+    await rotate_refresh_jti(old_jti, new_jti, user.id)
     _set_auth_cookies(response, token_data["access_token"], new_refresh)
     return token_data
 
@@ -199,6 +215,7 @@ async def update_me(
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)
 async def logout(response: Response, current_user: User = Depends(get_current_user)):
+    await revoke_all_user_tokens(str(current_user.id))
     _clear_auth_cookies(response)
 
 
@@ -248,7 +265,7 @@ async def forgot_password(body: ForgotPasswordRequest, db: AsyncSession = Depend
         except Exception as exc:
             logger.error("SendGrid email failed: %s", exc)
     else:
-        logger.info("Password reset token for %s: %s (configure SENDGRID_API_KEY to send email)", email, reset_token)
+        logger.warning("SendGrid not configured — password reset token generated for %s but not delivered", email)
 
     return {"detail": "If that email is registered, a reset link has been sent."}
 

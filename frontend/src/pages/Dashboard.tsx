@@ -7,7 +7,8 @@ import {
   ArrowRight, TrendingUp, TrendingDown, Zap, Newspaper,
   BarChart2, Activity, RefreshCw, ChevronUp, ChevronDown,
   AlertCircle, Target, Brain, Plus, PieChart as PieIcon,
-  TrendingUp as SipIcon, Globe,
+  TrendingUp as SipIcon, Globe, Calculator, FileText,
+  Rocket, Star, Layers, BookOpen,
 } from 'lucide-react';
 import { useIsMobile } from '../hooks/useBreakpoint';
 import {
@@ -93,10 +94,10 @@ const heatmapStocks = [
 
 const getHeatColor = (c: number) => {
   if (c >= 4)  return { bg: 'rgba(0,200,150,0.75)', tx: '#fff',    glow: 'rgba(0,200,150,0.4)' };
-  if (c >= 2)  return { bg: 'rgba(0,200,150,0.35)', tx: '#00C896', glow: 'rgba(0,200,150,0.2)' };
+  if (c >= 2)  return { bg: 'rgba(34,197,94,0.20)', tx: 'var(--gain)', glow: 'rgba(0,200,150,0.2)' };
   if (c >= 0)  return { bg: 'rgba(0,200,150,0.12)', tx: '#4ade80', glow: 'transparent' };
   if (c >= -2) return { bg: 'rgba(255,77,106,0.16)', tx: '#ff8fa3', glow: 'transparent' };
-  return               { bg: 'rgba(255,77,106,0.55)', tx: '#fff',   glow: 'rgba(255,77,106,0.3)' };
+  return               { bg: 'rgba(255,77,106,0.55)', tx: '#fff',   glow: 'rgba(239,68,68,0.25)' };
 };
 
 const sentimentColor = (s: string) =>
@@ -190,7 +191,7 @@ export default function Dashboard() {
   const totalInvested = portfolioQuery.data?.totalInvested ?? holdings.reduce((s, h) => s + h.avgPrice    * h.qty, 0);
   const totalGain     = totalValue - totalInvested;
   const gainPct       = totalInvested ? ((totalGain / totalInvested) * 100).toFixed(1) : '0.0';
-  const todayPnL      = Math.round(totalGain * 0.015);
+  const todayPnL      = (portfolioQuery.data as any)?.today_pnl ?? null;
 
   const brokerBreakdown = portfolioQuery.data?.brokerBreakdown ?? [...new Set(holdings.map(h => h.broker))].map(broker => {
     const bh  = holdings.filter(h => h.broker === broker);
@@ -214,32 +215,47 @@ export default function Dashboard() {
       style={{ display: 'flex', flexDirection: 'column', gap: 22, maxWidth: 1280 }}>
 
       {/* ── HEADER ─────────────────────────────────────────── */}
-      <motion.div {...fadeUp(0)} style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12 }}>
-        <div>
-          <h1 style={{ fontSize: isMobile ? 19 : 23, fontWeight: 800, color: 'var(--tx)', letterSpacing: '-0.025em', marginBottom: 4 }}>
-            {greeting}, <span className="gradient-text">{user?.name?.split(' ')[0] ?? 'Investor'}</span>
-          </h1>
-          <p style={{ fontSize: 13.5, color: 'var(--tx-3)' }}>
-            {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
-            &nbsp;·&nbsp;{isLive ? 'Portfolio synced' : 'Demo portfolio active'}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexShrink: 0 }}>
-          <motion.div whileHover={{ scale: 1.05 }}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', background: isLive ? 'rgba(0,200,150,0.08)' : 'rgba(245,166,35,0.08)', border: `1px solid ${isLive ? 'rgba(0,200,150,0.25)' : 'rgba(245,166,35,0.25)'}`, borderRadius: 10 }}>
+      <motion.div {...fadeUp(0)}>
+        {/* Top row: greeting + status badge */}
+        <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 10 }}>
+          <div>
+            <h1 style={{ fontSize: isMobile ? 19 : 23, fontWeight: 800, color: 'var(--tx)', letterSpacing: '-0.025em', marginBottom: 4 }}>
+              {greeting}, <span className="gradient-text">{user?.name?.split(' ')[0] ?? 'Investor'}</span>
+            </h1>
+            <p style={{ fontSize: 13.5, color: 'var(--tx-3)' }}>
+              {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              &nbsp;·&nbsp;{isLive ? 'Portfolio synced' : 'Demo portfolio active'}
+            </p>
+          </div>
+          {/* Status badge — top right, always visible */}
+          <motion.div whileHover={{ scale: 1.05 }} style={{ flexShrink: 0,
+            display: 'flex', alignItems: 'center', gap: 6,
+            padding: isMobile ? '5px 10px' : '7px 14px',
+            background: isLive ? 'rgba(0,200,150,0.08)' : 'rgba(245,166,35,0.08)',
+            border: `1px solid ${isLive ? 'rgba(0,200,150,0.25)' : 'rgba(245,166,35,0.25)'}`,
+            borderRadius: 10 }}>
             <motion.span animate={{ opacity: [1, 0.4, 1] }} transition={{ repeat: Infinity, duration: 2 }}
               style={{ width: 7, height: 7, borderRadius: '50%', background: isLive ? 'var(--gain)' : 'var(--gold)', display: 'inline-block', boxShadow: `0 0 6px ${isLive ? 'var(--gain)' : 'var(--gold)'}` }} />
-            <span style={{ fontSize: 12, fontWeight: 700, color: isLive ? 'var(--gain)' : 'var(--gold)' }}>{isLive ? 'LIVE' : 'PREVIEW'}</span>
+            <span style={{ fontSize: isMobile ? 11 : 12, fontWeight: 700, color: isLive ? 'var(--gain)' : 'var(--gold)' }}>{isLive ? 'LIVE' : 'PREVIEW'}</span>
           </motion.div>
+        </div>
+        {/* Action buttons row — full width on mobile, no overflow */}
+        <div style={{ display: 'flex', gap: isMobile ? 8 : 10, alignItems: 'center' }}>
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
             onClick={() => setTradeOpen(true)}
-            style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '7px 14px', borderRadius: 10, border: '1px solid var(--border)', background: 'var(--bg-card)', color: 'var(--tx-2)', fontSize: 12.5, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>
-            <Plus size={13} /> Add Trade
+            style={{ display: 'flex', alignItems: 'center', gap: 6,
+              padding: isMobile ? '7px 14px' : '7px 14px',
+              borderRadius: 10, border: '1px solid var(--border)',
+              background: 'var(--bg-card)', color: 'var(--tx-2)',
+              fontSize: isMobile ? 12 : 12.5, fontWeight: 700,
+              cursor: 'pointer', fontFamily: 'inherit', flex: isMobile ? 1 : undefined }}>
+            <Plus size={13} /> {isMobile ? 'Add Trade' : 'Add Trade'}
           </motion.button>
           {!isLive && (
             <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
               onClick={() => navigate('/login')}
-              className="btn-primary btn-glow" style={{ fontSize: 12.5, padding: '7px 16px', gap: 5 }}>
+              className="btn-primary btn-glow"
+              style={{ fontSize: isMobile ? 12 : 12.5, padding: isMobile ? '7px 14px' : '7px 16px', gap: 5, flex: isMobile ? 1 : undefined, justifyContent: 'center' }}>
               <RefreshCw size={13} /> Connect Broker
             </motion.button>
           )}
@@ -265,7 +281,7 @@ export default function Dashboard() {
               <span key={i} style={{ display: 'inline-flex', alignItems: 'center', gap: 10, paddingRight: 36 }}>
                 <span style={{ fontSize: 10.5, fontWeight: 700, padding: '1px 7px', borderRadius: 99,
                   background: n.sentiment?.toLowerCase() === 'positive' ? 'rgba(0,200,150,0.12)' : n.sentiment?.toLowerCase() === 'negative' ? 'rgba(255,77,106,0.12)' : 'var(--surface-mid)',
-                  color: n.sentiment?.toLowerCase() === 'positive' ? '#00C896' : n.sentiment?.toLowerCase() === 'negative' ? '#FF4D6A' : 'var(--tx-3)' }}>
+                  color: n.sentiment?.toLowerCase() === 'positive' ? 'var(--gain)' : n.sentiment?.toLowerCase() === 'negative' ? 'var(--loss)' : 'var(--tx-3)' }}>
                   {n.sentiment ?? 'NEUTRAL'}
                 </span>
                 <span style={{ fontSize: 12.5, color: 'var(--tx-2)', fontWeight: 500 }}>{n.headline}</span>
@@ -342,7 +358,9 @@ export default function Dashboard() {
           {/* Stats row */}
           <div style={{ display: 'flex', gap: 28, marginTop: 18, paddingTop: 16, borderTop: '1px solid var(--border)', flexWrap: 'wrap' }}>
             <StatBadge label="Invested"    value={`₹${(totalInvested / 100000).toFixed(1)}L`} />
-            <StatBadge label="Today's P&L" value={`${todayPnL >= 0 ? '+' : '-'}₹${Math.abs(todayPnL).toLocaleString('en-IN')}`} positive={todayPnL >= 0} />
+            {todayPnL !== null && (
+              <StatBadge label="Today's P&L" value={`${todayPnL >= 0 ? '+' : ''}₹${todayPnL.toLocaleString('en-IN')}`} positive={todayPnL >= 0} />
+            )}
             <StatBadge label="XIRR"        value={portfolioQuery.data?.xirr ? `${portfolioQuery.data.xirr.toFixed(1)}%` : '18.4%'} positive />
             <StatBadge label="Holdings"    value={`${holdings.length}`} />
           </div>
@@ -432,6 +450,46 @@ export default function Dashboard() {
         );
       })()}
 
+      {/* ── QUICK LINKS ────────────────────────────────────── */}
+      <motion.div {...fadeUp(0.12)}>
+        <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(4, 1fr)' : 'repeat(8, 1fr)', gap: isMobile ? 8 : 10 }}>
+          {[
+            { icon: <Brain size={isMobile ? 18 : 20} />,       label: 'AI Chat',    path: '/app/ai',            color: '#f47520' },
+            { icon: <BarChart2 size={isMobile ? 18 : 20} />,   label: 'Screener',   path: '/app/screener',      color: '#6366f1' },
+            { icon: <Layers size={isMobile ? 18 : 20} />,      label: 'Options',    path: '/app/options', color: '#06b6d4' },
+            { icon: <Activity size={isMobile ? 18 : 20} />,    label: 'Backtest',   path: '/app/backtest', color: '#8b5cf6' },
+            { icon: <Calculator size={isMobile ? 18 : 20} />,  label: 'Calculators',path: '/app/calculators',   color: '#10b981' },
+            { icon: <FileText size={isMobile ? 18 : 20} />,    label: 'Tax Tracker',path: '/app/tax',           color: '#f59e0b' },
+            { icon: <Rocket size={isMobile ? 18 : 20} />,      label: 'IPO Tracker',path: '/app/ipo',           color: '#ec4899' },
+            { icon: <Star size={isMobile ? 18 : 20} />,        label: 'Watchlist',  path: '/app/watchlist',     color: '#22c55e' },
+          ].map(item => (
+            <motion.button
+              key={item.path}
+              whileHover={{ y: -2, boxShadow: `0 6px 20px ${item.color}22` }}
+              whileTap={{ scale: 0.96 }}
+              onClick={() => navigate(item.path)}
+              style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                gap: isMobile ? 5 : 7,
+                padding: isMobile ? '10px 4px' : '14px 8px',
+                borderRadius: 12,
+                border: '1px solid var(--border)',
+                background: 'var(--bg-card)',
+                cursor: 'pointer', fontFamily: 'inherit',
+                transition: 'all 200ms',
+              }}
+              onMouseEnter={e => { (e.currentTarget as HTMLElement).style.borderColor = item.color + '55'; (e.currentTarget as HTMLElement).style.background = item.color + '08'; }}
+              onMouseLeave={e => { (e.currentTarget as HTMLElement).style.borderColor = 'var(--border)'; (e.currentTarget as HTMLElement).style.background = 'var(--bg-card)'; }}
+            >
+              <div style={{ color: item.color }}>{item.icon}</div>
+              <span style={{ fontSize: isMobile ? 10 : 11.5, fontWeight: 600, color: 'var(--tx-2)', textAlign: 'center', lineHeight: 1.2 }}>
+                {isMobile && item.label.length > 8 ? item.label.split(' ')[0] : item.label}
+              </span>
+            </motion.button>
+          ))}
+        </div>
+      </motion.div>
+
       {/* ── AI TOP PICKS ───────────────────────────────────── */}
       <motion.div variants={cardVariant}>
         <SectionHeader title="AI Top Picks Today" sub="Highest conviction scores across NSE/BSE" action="Full screener" onAction={() => navigate('/app/screener')} />
@@ -463,8 +521,8 @@ export default function Dashboard() {
                     <AreaChart data={chartData}>
                       <defs>
                         <linearGradient id={`cg${i}`} x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="0%" stopColor={positive ? '#00C896' : '#FF4D6A'} stopOpacity={0.3} />
-                          <stop offset="100%" stopColor={positive ? '#00C896' : '#FF4D6A'} stopOpacity={0} />
+                          <stop offset="0%" stopColor={positive ? 'var(--gain)' : 'var(--loss)'} stopOpacity={0.3} />
+                          <stop offset="100%" stopColor={positive ? 'var(--gain)' : 'var(--loss)'} stopOpacity={0} />
                         </linearGradient>
                       </defs>
                       <Area type="monotone" dataKey="price" stroke={positive ? 'var(--gain)' : 'var(--loss)'} strokeWidth={1.5} fill={`url(#cg${i})`} dot={false} />
@@ -632,7 +690,7 @@ export default function Dashboard() {
         {isMobile && (
           <div style={{ display: 'flex', gap: 8 }}>
             {[{label:'HAL',action:'BUY',color:'var(--gain)'},{label:'HDFC',action:'HOLD',color:'var(--gold)'},{label:'INFY',action:'BUY',color:'var(--gain)'}].map(s => (
-              <div key={s.label} style={{ padding: '4px 10px', background: `${s.color === 'var(--gain)' ? 'rgba(0,200,150,0.12)' : 'rgba(245,166,35,0.12)'}`, border: `1px solid ${s.color === 'var(--gain)' ? 'rgba(0,200,150,0.3)' : 'rgba(245,166,35,0.3)'}`, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
+              <div key={s.label} style={{ padding: '4px 10px', background: `${s.color === 'var(--gain)' ? 'rgba(0,200,150,0.12)' : 'rgba(245,166,35,0.12)'}`, border: `1px solid ${s.color === 'var(--gain)' ? 'rgba(34,197,94,0.28)' : 'rgba(245,166,35,0.3)'}`, borderRadius: 8, display: 'flex', alignItems: 'center', gap: 5 }}>
                 <span style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--tx)' }}>{s.label}</span>
                 <span style={{ fontSize: 10.5, fontWeight: 700, color: s.color }}>{s.action}</span>
               </div>

@@ -93,16 +93,29 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'stockvision-store',
-      // authToken deliberately excluded — backend httpOnly cookie is the durable session.
-      // Persisting JWT in localStorage enables token theft via any XSS in any npm dep.
+      // Persist only non-PII session hints.
+      // Full user profile (email, phone, plan, sectors) is re-fetched from the backend
+      // on every app load via /auth/me — never stored in localStorage.
       partialize: (state) => ({
         isLoggedIn: state.isLoggedIn,
-        user: state.user,
         onboardingComplete: state.onboardingComplete,
         onboardingStep: state.onboardingStep,
         sidebarOpen: state.sidebarOpen,
         language: state.language,
         watchlist: state.watchlist,
+        // user.id and user.name are low-sensitivity — kept for UI continuity before /auth/me resolves.
+        // email, phone, plan, sectors are NOT persisted.
+        user: state.user ? {
+          id: state.user.id,
+          name: state.user.name,
+          email: '',
+          phone: '',
+          plan: 'free' as const,
+          language: state.user.language,
+          investingStyle: state.user.investingStyle,
+          riskAppetite: state.user.riskAppetite,
+          sectors: [],
+        } : null,
       }),
     },
   ),

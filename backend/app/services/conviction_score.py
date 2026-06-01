@@ -106,15 +106,20 @@ def _score_dividend(dy: float | None) -> float:
 
 
 def _score_momentum(change_pct: float) -> float:
-    if change_pct > 10:
+    """Score price momentum. Works for any period (1m, 3m) — caller provides correct value."""
+    if change_pct > 15:
         return 0.9
-    if change_pct > 5:
+    if change_pct > 8:
         return 0.75
+    if change_pct > 2:
+        return 0.65
     if change_pct > 0:
-        return 0.6
+        return 0.55
     if change_pct > -5:
-        return 0.45
-    return 0.25
+        return 0.4
+    if change_pct > -15:
+        return 0.3
+    return 0.2
 
 
 def _score_52w_position(price: float, low: float | None, high: float | None) -> float:
@@ -145,6 +150,27 @@ def _score_beta(beta: float | None) -> float:
     return 0.4
 
 
+def _score_volume(volume: float | None, avg_volume: float | None) -> float:
+    """Score volume relative to the stock's own average — avoids large-cap bias."""
+    if volume is None or volume <= 0:
+        return 0.4
+    if avg_volume and avg_volume > 0:
+        ratio = volume / avg_volume
+        if ratio > 3.0:
+            return 0.9   # breakout volume
+        if ratio > 1.5:
+            return 0.75
+        if ratio > 0.8:
+            return 0.6
+        return 0.35      # below-average volume — weak conviction
+    # Fallback: absolute threshold for stocks without avg_volume data
+    if volume > 2_000_000:
+        return 0.75
+    if volume > 500_000:
+        return 0.6
+    return 0.4
+
+
 def _score_fcf(fcf: float | None) -> float:
     if fcf is None:
         return 0.4
@@ -162,9 +188,9 @@ def compute_conviction_score(quote: dict, fundamentals: dict) -> dict[str, Any]:
         "roe": _score_roe(fundamentals.get("roe")),
         "debt_equity": _score_debt_equity(fundamentals.get("debt_equity")),
         "dividend_yield": _score_dividend(fundamentals.get("dividend_yield")),
-        "price_momentum_1m": _score_momentum(quote.get("change_pct", 0)),
-        "price_momentum_3m": _score_momentum(quote.get("change_pct", 0) * 1.5),  # proxy
-        "volume_signal": 0.7 if quote.get("volume", 0) > 500_000 else 0.4,
+        "price_momentum_1m": _score_momentum(quote.get("change_pct_1m") or quote.get("change_pct", 0)),
+        "price_momentum_3m": _score_momentum(quote.get("change_pct_3m") or quote.get("change_pct", 0)),
+        "volume_signal": _score_volume(quote.get("volume"), quote.get("avg_volume")),
         "beta_risk": _score_beta(fundamentals.get("beta")),
         "week_52_position": _score_52w_position(
             quote.get("price", 0),

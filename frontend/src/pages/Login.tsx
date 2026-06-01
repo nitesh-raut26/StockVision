@@ -1,11 +1,12 @@
 import { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { BarChart2, Phone, Mail, ArrowRight, Eye, EyeOff, ChartCandlestick, Target, Briefcase, Mic, FileText, Sun, Moon } from 'lucide-react';
+import { BarChart2, Phone, Mail, Eye, EyeOff, ChartCandlestick, Target, Briefcase, Mic, FileText, Sun, Moon } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { loginWithEmail } from '../lib/api';
 import { useTheme } from '../hooks/useTheme';
 import { useIsMobile } from '../hooks/useBreakpoint';
+
 
 const features = [
   { icon: Target,           text: 'AI Conviction Score for 5,000+ stocks' },
@@ -21,11 +22,8 @@ export default function Login() {
   const { theme, toggleTheme } = useTheme();
   const isMobile = useIsMobile();
   const [tab, setTab]           = useState<'phone' | 'email'>('phone');
-  const [phone, setPhone]       = useState('');
   const [email, setEmail]       = useState('');
   const [password, setPassword] = useState('');
-  const [otp, setOtp]           = useState('');
-  const [otpSent, setOtpSent]   = useState(false);
   const [showPass, setShowPass] = useState(false);
   const [loading, setLoading]   = useState(false);
   const [error, setError]       = useState('');
@@ -174,33 +172,19 @@ export default function Login() {
 
           {tab === 'phone' ? (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
-              <div>
-                <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--tx-2)', marginBottom: 7 }}>Mobile Number</label>
-                <div style={{ display: 'flex', gap: 8 }}>
-                  <div style={{ ...inputStyle, width: 'auto', padding: '12px 14px', color: 'var(--tx-2)', whiteSpace: 'nowrap', flexShrink: 0 }}>+91</div>
-                  <input type="tel" value={phone} onChange={e => setPhone(e.target.value)} placeholder="9876543210" style={{ ...inputStyle }} />
-                </div>
+              <div style={{ padding: '20px 16px', borderRadius: 12, background: 'var(--bg-elevated)', border: '1px solid var(--border)', textAlign: 'center' }}>
+                <Phone size={24} style={{ color: 'var(--tx-3)', marginBottom: 10 }} />
+                <p style={{ fontSize: 14, fontWeight: 600, color: 'var(--tx-2)', marginBottom: 6 }}>
+                  Phone OTP — Coming Soon
+                </p>
+                <p style={{ fontSize: 12.5, color: 'var(--tx-3)', lineHeight: 1.5 }}>
+                  We're integrating SMS verification. Use email login in the meantime.
+                </p>
               </div>
-              {!otpSent ? (
-                <button onClick={() => { if (phone.length >= 10) setOtpSent(true); }}
-                  style={{ width: '100%', background: 'var(--brand)', border: 'none', color: '#fff', padding: '13px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, fontFamily: 'inherit', transition: 'background 150ms' }}
-                  onMouseEnter={e => (e.currentTarget.style.background = 'var(--brand-hover)')}
-                  onMouseLeave={e => (e.currentTarget.style.background = 'var(--brand)')}>
-                  Send OTP <ArrowRight size={14} />
-                </button>
-              ) : (
-                <>
-                  <div>
-                    <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: 'var(--tx-2)', marginBottom: 7 }}>Enter OTP (use any 6 digits)</label>
-                    <input type="text" value={otp} onChange={e => setOtp(e.target.value)} placeholder="• • • • • •" maxLength={6}
-                      style={{ ...inputStyle, textAlign: 'center', letterSpacing: '0.3em', fontSize: 18 }} />
-                  </div>
-                  <button onClick={handleDemoLogin} disabled={loading || otp.length < 4}
-                    style={{ width: '100%', background: 'var(--brand)', border: 'none', color: '#fff', padding: '13px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: loading ? 'default' : 'pointer', opacity: (loading || otp.length < 4) ? 0.55 : 1, fontFamily: 'inherit', transition: 'opacity 150ms' }}>
-                    {loading ? 'Verifying…' : 'Verify & Enter Demo'}
-                  </button>
-                </>
-              )}
+              <button onClick={() => setTab('email')}
+                style={{ width: '100%', background: 'var(--brand)', border: 'none', color: '#fff', padding: '13px 0', borderRadius: 12, fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+                Switch to Email Login
+              </button>
             </div>
           ) : (
             <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
@@ -236,9 +220,13 @@ export default function Login() {
 
           <p style={{ fontSize: 12.5, color: 'var(--tx-3)', textAlign: 'center', marginTop: 28 }}>
             Don&rsquo;t have an account?{' '}
-            <button onClick={() => navigate('/')} style={{ color: 'var(--brand)', background: 'none', border: 'none', cursor: 'pointer', fontSize: 12.5, fontFamily: 'inherit', fontWeight: 600 }}>
-              Join the waitlist
-            </button>
+            <Link
+              to="/signup"
+              id="goto-signup"
+              style={{ color: 'var(--brand)', fontWeight: 600, textDecoration: 'none', fontFamily: 'inherit', fontSize: 12.5 }}
+            >
+              Create one free
+            </Link>
           </p>
         </motion.div>
       </div>

@@ -32,6 +32,12 @@ import logging
 import time
 from typing import AsyncGenerator
 
+# Allowed Claude model IDs — prevent arbitrary model injection
+_ALLOWED_MODELS = {
+    "claude-haiku-4-5-20251001",
+    "claude-sonnet-4-6",
+}
+
 from fastapi import APIRouter, Depends, HTTPException, status
 from fastapi.responses import StreamingResponse
 from pydantic import BaseModel, Field
@@ -55,17 +61,36 @@ _PLAN_LIMITS: dict[str, int] = {
     "enterprise": 999999,
 }
 
-_rate_store: dict[str, list[float]] = {}  # user_id → list of timestamps
+_rate_store: dict[str, list[float]] = {}  # in-process fallback only
 
-def _check_rate_limit(user_id: str, plan: str, window: int = 60) -> bool:
+
+async def _check_rate_limit(user_id: str, plan: str, window: int = 60) -> bool:
+    """Redis sliding-window rate limiter; falls back to in-memory if Redis is unavailable."""
     limit = _PLAN_LIMITS.get(plan, 3)
+    key = f"ai_rate:{user_id}"
     now = time.time()
-    calls = [t for t in _rate_store.get(user_id, []) if now - t < window]
-    if len(calls) >= limit:
-        return False
-    calls.append(now)
-    _rate_store[user_id] = calls
-    return True
+
+    try:
+        import redis.asyncio as aioredis
+        from app.core.config import settings as _s
+        r = aioredis.from_url(_s.redis_url, decode_responses=True)
+        async with r:
+            pipe = r.pipeline()
+            pipe.zremrangebyscore(key, "-inf", now - window)
+            pipe.zcard(key)
+            pipe.zadd(key, {str(now): now})
+            pipe.expire(key, window + 5)
+            results = await pipe.execute()
+        count_before_add = results[1]
+        return count_before_add < limit
+    except Exception:
+        # In-memory fallback (single-worker only)
+        calls = [t for t in _rate_store.get(user_id, []) if now - t < window]
+        if len(calls) >= limit:
+            return False
+        calls.append(now)
+        _rate_store[user_id] = calls
+        return True
 
 
 # ── Schemas ───────────────────────────────────────────────────────────────────
@@ -77,8 +102,8 @@ class ChatMessage(BaseModel):
 
 class ChatRequest(BaseModel):
     messages: list[ChatMessage]
-    ticker: str | None = None   # optional context — prefetch data if provided
-    model: str = "claude-haiku-4-5"  # or "claude-sonnet-4-5" for deep research
+    ticker: str | None = None
+    model: str = "claude-haiku-4-5-20251001"
 
 
 class ReportRequest(BaseModel):
@@ -329,7 +354,7 @@ async def chat(
             detail="AI assistant is not configured. Add ANTHROPIC_API_KEY to enable.",
         )
 
-    if not _check_rate_limit(str(current_user.id), current_user.plan):
+    if not await _check_rate_limit(str(current_user.id), current_user.plan):
         plan_limit = _PLAN_LIMITS.get(current_user.plan, 3)
         raise HTTPException(
             status_code=status.HTTP_429_TOO_MANY_REQUESTS,
@@ -338,9 +363,13 @@ async def chat(
 
     messages = [{"role": m.role, "content": m.content} for m in body.messages]
 
-    model = "claude-haiku-4-5"
-    if body.model == "claude-sonnet-4-5" and current_user.plan in ("pro", "enterprise"):
-        model = "claude-sonnet-4-5"
+    # Validate requested model against allowlist; default to haiku for non-pro
+    requested = body.model if body.model in _ALLOWED_MODELS else "claude-haiku-4-5-20251001"
+    model = (
+        "claude-sonnet-4-6"
+        if requested == "claude-sonnet-4-6" and current_user.plan in ("pro", "enterprise")
+        else "claude-haiku-4-5-20251001"
+    )
 
     return StreamingResponse(
         _stream_claude(messages, model, api_key),
@@ -373,7 +402,7 @@ async def generate_report(
         raise HTTPException(status_code=403, detail="Deep research reports require Pro plan or above")
 
     # Check daily report limit
-    if not _check_rate_limit(f"report:{current_user.id}", current_user.plan, window=86400):
+    if not await _check_rate_limit(f"report:{current_user.id}", current_user.plan, window=86400):
         raise HTTPException(status_code=429, detail="Daily report limit reached. Upgrade your plan.")
 
     ticker_u = ticker.upper()
@@ -448,18 +477,23 @@ Base your analysis on the provided data. Be specific with numbers. Format prices
             "https://api.anthropic.com/v1/messages",
             headers={"x-api-key": api_key, "anthropic-version": "2023-06-01"},
             json={
-                "model":      "claude-sonnet-4-5",
+                "model":      "claude-sonnet-4-6",
                 "max_tokens": 2048,
                 "messages":   [{"role": "user", "content": prompt}],
             },
         )
         response.raise_for_status()
         content = response.json()["content"][0]["text"]
-        # Extract JSON from response (Claude may wrap it in ```json blocks)
-        if "```json" in content:
-            content = content.split("```json")[1].split("```")[0].strip()
-        elif "```" in content:
-            content = content.split("```")[1].split("```")[0].strip()
+        # Robustly extract JSON — handle ``` fences and leading/trailing prose
+        import re
+        json_match = re.search(r"```(?:json)?\s*(\{.*?\})\s*```", content, re.DOTALL)
+        if json_match:
+            content = json_match.group(1)
+        else:
+            # Find first { ... } block
+            brace_match = re.search(r"\{.*\}", content, re.DOTALL)
+            if brace_match:
+                content = brace_match.group(0)
         report = json.loads(content)
         return report
     except json.JSONDecodeError as exc:
@@ -476,5 +510,15 @@ async def report_status(
     current_user: User = Depends(get_current_user),
 ):
     """Check if a cached report exists for this ticker."""
-    # In production, check Redis cache key "report:{ticker}"
-    return {"ticker": ticker.upper(), "cached": False, "cached_at": None}
+    from app.core.config import settings as _s
+    ticker_u = ticker.upper()
+    cache_key = f"report:{ticker_u}"
+    try:
+        import redis.asyncio as aioredis
+        r = aioredis.from_url(_s.redis_url, decode_responses=True)
+        async with r:
+            cached_at = await r.get(f"{cache_key}:ts")
+            exists = await r.exists(cache_key)
+        return {"ticker": ticker_u, "cached": bool(exists), "cached_at": cached_at}
+    except Exception:
+        return {"ticker": ticker_u, "cached": False, "cached_at": None}

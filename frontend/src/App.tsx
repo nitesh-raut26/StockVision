@@ -9,6 +9,7 @@ import ErrorBoundary from './components/ErrorBoundary';
 import AppLayout from './components/layout/AppLayout';
 import Landing from './pages/Landing';
 import Login from './pages/Login';
+import Signup from './pages/Signup';
 
 // ── Lazy loaded: all app pages (reduces initial bundle ~1.1MB → ~180KB) ───
 const Onboarding      = lazy(() => import('./pages/Onboarding'));
@@ -82,6 +83,7 @@ export default function App() {
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/login" element={<Login />} />
+                <Route path="/signup" element={<Signup />} />
                 <Route path="/onboarding" element={
                   <ErrorBoundary>
                     <Onboarding />

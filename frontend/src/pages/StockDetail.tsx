@@ -217,12 +217,19 @@ export default function StockDetail() {
     return available.slice(-pts);
   }, [detailQuery.data?.history, stock.price, timeframe]);
 
+  /* ─── Indicator base data — always 90+ points for accuracy ──── */
+  const indicatorBase = useMemo(() => {
+    const available = detailQuery.data?.history ?? [];
+    if (!available.length) return generateChartData(120, stock.price);
+    return available.length >= 90 ? available.slice(-120) : generateChartData(120, stock.price);
+  }, [detailQuery.data?.history, stock.price]);
+
   const stockNews = mockNews.filter(n => n.ticker === stock.ticker || n.sector === stock.sector).slice(0, 4);
 
   /* ─── Technical indicator data ──────────────────────────────── */
   const indicators = useMemo(() => {
-    const prices  = chartData.map((d: any) => d.price as number);
-    const volumes = chartData.map((d: any) => (d.volume as number) ?? 100000);
+    const prices  = indicatorBase.map((d: any) => d.price as number);
+    const volumes = indicatorBase.map((d: any) => (d.volume as number) ?? 100000);
 
     const rsiVals = calcRSI(prices);
     const { macdLine, signal, hist } = calcMACD(prices);
@@ -236,18 +243,18 @@ export default function StockDetail() {
 
     const last = prices.length - 1;
 
-    const rsiData = chartData.map((d: any, i: number) => ({
+    const rsiData = indicatorBase.map((d: any, i: number) => ({
       date: d.date, rsi: rsiVals[i] !== null ? +((rsiVals[i] as number).toFixed(2)) : null,
     }));
-    const macdData = chartData.map((d: any, i: number) => ({
+    const macdData = indicatorBase.map((d: any, i: number) => ({
       date: d.date,
       macd: macdLine[i] !== null ? +((macdLine[i] as number).toFixed(2)) : null,
       signal: signal[i] !== null ? +((signal[i] as number).toFixed(2)) : null,
       hist: hist[i] !== null ? +((hist[i] as number).toFixed(2)) : null,
     }));
-    const bbData = chartData.map((d: any, i: number) => ({
+    const bbData = indicatorBase.map((d: any, i: number) => ({
       date: d.date,
-      price: d.price,
+      price: (d as any).price,
       upper: bbUpper[i] !== null ? +(( bbUpper[i] as number).toFixed(2)) : null,
       middle: bbMid[i]  !== null ? +((bbMid[i]   as number).toFixed(2)) : null,
       lower: bbLower[i] !== null ? +((bbLower[i]  as number).toFixed(2)) : null,
@@ -270,7 +277,7 @@ export default function StockDetail() {
       curRSI, curMACD, curSignal, curEMA20, curEMA50,
       curK, curD, atr, curOBV, curWR, curCCI,
     };
-  }, [chartData]);
+  }, [indicatorBase]);
 
   const convictionBreakdown = detailQuery.data?.breakdown ?? [
     { name: 'Fundamentals', value: 38, color: '#f47520' },
@@ -497,7 +504,7 @@ export default function StockDetail() {
                   </div>
                 </div>
                 <div style={{ height: 160 }}>
-                  <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
                     <LineChart data={indicators.rsiData} margin={{ top: 4, right: isMobile ? 4 : 50, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                       <XAxis dataKey="date" tick={{ fill: 'var(--tx-3)', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
@@ -534,7 +541,7 @@ export default function StockDetail() {
                   ))}
                 </div>
                 <div style={{ height: 180 }}>
-                  <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
                     <ComposedChart data={indicators.macdData} margin={{ top: 4, right: isMobile ? 4 : 50, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                       <XAxis dataKey="date" tick={{ fill: 'var(--tx-3)', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
@@ -570,7 +577,7 @@ export default function StockDetail() {
                   ))}
                 </div>
                 <div style={{ height: 200 }}>
-                  <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+                  <ResponsiveContainer width="100%" height="100%" debounce={50}>
                     <ComposedChart data={indicators.bbData} margin={{ top: 4, right: isMobile ? 4 : 50, left: 0, bottom: 0 }}>
                       <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                       <XAxis dataKey="date" tick={{ fill: 'var(--tx-3)', fontSize: 10 }} axisLine={false} tickLine={false} interval="preserveStartEnd" />
@@ -700,7 +707,7 @@ export default function StockDetail() {
               </div>
             </div>
             <div style={{ height: 180 }}>
-              <ResponsiveContainer width="100%" height="100%" initialDimension={{ width: 1, height: 1 }}>
+              <ResponsiveContainer width="100%" height="100%" debounce={50}>
                 <BarChart data={qData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="q" tick={{ fill: 'var(--tx-3)', fontSize: 10 }} axisLine={false} tickLine={false} />

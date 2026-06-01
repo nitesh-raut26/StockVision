@@ -108,8 +108,13 @@ async def get_dcf_valuation(ticker: str, wacc: float = 0.12, growth_years: int =
     fcf = fundamentals.get("free_cash_flow") or 0
     revenue_growth = (fundamentals.get("revenue_growth") or 12) / 100
     current_price = quote.get("price", 0)
-    market_cap = quote.get("market_cap") or 1
-    shares = market_cap / current_price if current_price > 0 else 1
+    # Prefer yfinance sharesOutstanding; fall back to market_cap/price as last resort.
+    # NSE scraper returns market_cap=0 for most tickers, making the division useless.
+    shares = (
+        fundamentals.get("shares_outstanding")
+        or (quote.get("market_cap", 0) / current_price if current_price > 0 else None)
+        or 1
+    )
 
     result = compute_dcf(
         free_cash_flow=fcf,

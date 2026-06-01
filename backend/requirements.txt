@@ -1,6 +1,7 @@
 # Core
 fastapi==0.115.5
 uvicorn[standard]==0.32.1
+gunicorn==23.0.0
 python-dotenv==1.0.1
 
 # Database
@@ -10,7 +11,7 @@ alembic==1.14.0
 greenlet>=3.0.0
 
 # Auth & Security
-python-jose[cryptography]==3.3.0
+PyJWT==2.9.0
 passlib[bcrypt]==1.7.4
 python-multipart==0.0.19
 cryptography>=42.0.0
@@ -46,4 +47,4 @@ slowapi==0.1.9
 # Testing
 pytest==8.3.4
 pytest-asyncio==0.24.0
-httpx==0.28.0
+anyio[asyncio]>=4.0.0

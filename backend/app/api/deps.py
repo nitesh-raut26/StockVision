@@ -35,7 +35,7 @@ async def get_current_user(
 
     try:
         payload = decode_token(token)
-        if payload.get("type") not in ("access", None):
+        if payload.get("type") != "access":
             raise ValueError("Wrong token type")
         user_id: str = payload["sub"]
     except (ValueError, KeyError):
