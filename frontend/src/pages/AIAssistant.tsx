@@ -14,9 +14,10 @@ import { useState, useRef, useEffect, useCallback, Fragment } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
-  Send, Bot, Sparkles, AlertCircle, Loader2, TrendingUp,
+  Send, Bot, Sparkles, AlertCircle, Loader2, TrendingUp, TrendingDown,
   Lock, MessageSquare, BarChart3, Zap, RefreshCw, Brain,
   ChevronDown, ChevronUp, ExternalLink, FileText, Cpu,
+  GitCompare, Lightbulb, Target, type LucideIcon,
 } from 'lucide-react';
 import { useStore } from '../store/useStore';
 import { useIsMobile } from '../hooks/useBreakpoint';
@@ -32,19 +33,19 @@ const PLAN_LIMITS: Record<string, number> = {
   enterprise: 999999,
 };
 
-const TOOL_LABELS: Record<string, { icon: string; label: string }> = {
-  get_stock_price:       { icon: '📈', label: 'Fetching live price…'   },
-  get_fundamentals:      { icon: '📊', label: 'Loading fundamentals…'  },
-  get_technical_signals: { icon: '⚡', label: 'Analysing technicals…'  },
+const TOOL_LABELS: Record<string, { icon: LucideIcon; label: string }> = {
+  get_stock_price:       { icon: TrendingUp, label: 'Fetching live price…'   },
+  get_fundamentals:      { icon: BarChart3,  label: 'Loading fundamentals…'  },
+  get_technical_signals: { icon: Zap,        label: 'Analysing technicals…'  },
 };
 
-const QUICK_PROMPTS = [
-  { icon: '📊', label: 'Is RELIANCE a buy?',      prompt: 'Should I buy Reliance Industries right now? Give me a quick fundamental and technical analysis.' },
-  { icon: '📈', label: 'Market outlook 2026',      prompt: 'What is the current Indian stock market outlook for 2026? Key sectors to watch?' },
-  { icon: '⚡', label: 'Top defence stocks',       prompt: 'What are the best defence sector stocks in India right now? List top 5 with brief rationale.' },
-  { icon: '🏦', label: 'TCS vs Infosys',           prompt: 'Compare TCS and Infosys fundamentally — which is a better long-term investment?' },
-  { icon: '💡', label: 'Explain P/E ratio',        prompt: 'Explain the Price-to-Earnings ratio simply and how to use it effectively for Indian stocks.' },
-  { icon: '🎯', label: 'NIFTY 50 analysis',        prompt: 'Analyse the current NIFTY 50 technical setup — is it a good time to enter?' },
+const QUICK_PROMPTS: { icon: LucideIcon; label: string; prompt: string }[] = [
+  { icon: BarChart3,  label: 'Is RELIANCE a buy?',      prompt: 'Should I buy Reliance Industries right now? Give me a quick fundamental and technical analysis.' },
+  { icon: TrendingUp, label: 'Market outlook 2026',      prompt: 'What is the current Indian stock market outlook for 2026? Key sectors to watch?' },
+  { icon: Zap,        label: 'Top defence stocks',       prompt: 'What are the best defence sector stocks in India right now? List top 5 with brief rationale.' },
+  { icon: GitCompare, label: 'TCS vs Infosys',           prompt: 'Compare TCS and Infosys fundamentally — which is a better long-term investment?' },
+  { icon: Lightbulb,  label: 'Explain P/E ratio',        prompt: 'Explain the Price-to-Earnings ratio simply and how to use it effectively for Indian stocks.' },
+  { icon: Target,     label: 'NIFTY 50 analysis',        prompt: 'Analyse the current NIFTY 50 technical setup — is it a good time to enter?' },
 ];
 
 /* ─── Types ─────────────────────────────────────────────────────────────────── */
@@ -347,14 +348,14 @@ function ReportCard({ report }: { report: Record<string, unknown> }) {
           </p>
 
           {[
-            { title: '🟢 Bull Thesis', key: 'bull_thesis',  color: 'var(--gain)' },
-            { title: '🔴 Bear Thesis', key: 'bear_thesis',  color: 'var(--loss)' },
-            { title: '⚠️ Key Risks',   key: 'key_risks',    color: 'var(--gold)' },
+            { title: 'Bull Thesis', icon: TrendingUp,   key: 'bull_thesis', color: 'var(--gain)' },
+            { title: 'Bear Thesis', icon: TrendingDown, key: 'bear_thesis', color: 'var(--loss)' },
+            { title: 'Key Risks',   icon: AlertCircle,  key: 'key_risks',   color: 'var(--gold)' },
           ].map(section => {
             const items = Array.isArray(report[section.key]) ? (report[section.key] as string[]) : [];
             return items.length ? (
               <div key={section.key}>
-                <div style={{ fontSize: 12, fontWeight: 700, color: section.color, marginBottom: 4 }}>{section.title}</div>
+                <div style={{ fontSize: 12, fontWeight: 700, color: section.color, marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}><section.icon size={13} />{section.title}</div>
                 <ul style={{ margin: 0, paddingLeft: 16 }}>
                   {items.map((item, i) => (
                     <li key={i} style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.55, marginBottom: 3 }}>{String(item)}</li>
@@ -366,13 +367,13 @@ function ReportCard({ report }: { report: Record<string, unknown> }) {
 
           {!!report.valuation_analysis && (
             <div>
-              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--tx-3)', marginBottom: 4 }}>📊 Valuation</div>
+              <div style={{ fontSize: 12, fontWeight: 700, color: 'var(--tx-3)', marginBottom: 4, display: 'flex', alignItems: 'center', gap: 5 }}><BarChart3 size={12} />Valuation</div>
               <p style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.55, margin: 0 }}>{String(report.valuation_analysis)}</p>
             </div>
           )}
 
           <div style={{ fontSize: 11, color: 'var(--tx-3)', marginTop: 4, padding: '8px 10px', background: 'rgba(229,57,53,0.04)', borderRadius: 6, lineHeight: 1.5 }}>
-            ⚠️ {String(report.disclaimer ?? 'Educational purposes only — not investment advice')}
+            <AlertCircle size={12} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} />{String(report.disclaimer ?? 'Educational purposes only — not investment advice')}
           </div>
         </div>
       )}
@@ -715,7 +716,7 @@ export default function AIAssistant() {
                   }}
                   onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-brand)'; e.currentTarget.style.color = 'var(--brand)'; e.currentTarget.style.background = 'var(--brand-dim)'; }}
                   onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border)'; e.currentTarget.style.color = 'var(--tx-2)'; e.currentTarget.style.background = 'var(--bg-card)'; }}>
-                  <span style={{ fontSize: isMobile ? 13 : 14 }}>{qp.icon}</span>
+                  <qp.icon size={isMobile ? 14 : 15} style={{ flexShrink: 0 }} />
                   <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{qp.label}</span>
                 </button>
               ))}
@@ -757,12 +758,12 @@ export default function AIAssistant() {
                             style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 8 }}
                           >
                             {msg.toolCalls.map(tool => {
-                              const tl = TOOL_LABELS[tool] ?? { icon: '🔧', label: `Calling ${tool}…` };
+                              const tl = TOOL_LABELS[tool] ?? { icon: Cpu, label: `Calling ${tool}…` };
                               return (
                                 <div key={tool}
                                   style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '4px 10px', borderRadius: 8, background: 'rgba(244,117,32,0.08)', border: '1px solid rgba(244,117,32,0.2)', fontSize: 11.5, color: 'var(--brand)', fontWeight: 600 }}>
                                   <Loader2 size={11} className="spin" />
-                                  {tl.icon} {tl.label}
+                                  <tl.icon size={12} /> {tl.label}
                                 </div>
                               );
                             })}
@@ -843,7 +844,7 @@ export default function AIAssistant() {
                 onClick={() => sendMessage(qp.prompt)}
                 disabled={isStreaming || isAtLimit}
                 style={{ flexShrink: 0, display: 'flex', alignItems: 'center', gap: 4, padding: '4px 10px', borderRadius: 8, border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--tx-3)', fontSize: 11.5, cursor: 'pointer', fontFamily: 'inherit', opacity: (isStreaming || isAtLimit) ? 0.5 : 1, transition: 'all 150ms', whiteSpace: 'nowrap' }}>
-                <span>{qp.icon}</span> {qp.label}
+                <qp.icon size={13} style={{ flexShrink: 0 }} /> {qp.label}
               </button>
             ))}
           </div>

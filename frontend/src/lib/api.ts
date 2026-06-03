@@ -34,7 +34,7 @@
 export { loginWithEmail, registerUser, updateProfile } from './services/authService';
 
 // ── Stocks ────────────────────────────────────────────────────────────────────
-export type { SearchResult }                                    from './services/stockService';
+export type { SearchResult, AnalystTarget, StockNewsItem }      from './services/stockService';
 export {
   fetchIndices,
   searchMarket,
@@ -42,6 +42,8 @@ export {
   fetchStockDetails,
   fetchDcf,
   fetchHeatmap,
+  fetchAnalystTargets,
+  fetchStockNews,
   buildConvictionBreakdown,
   findMockStock,
 }                                                               from './services/stockService';
@@ -127,3 +129,23 @@ export {
   fetchOptionsChain,
   fetchOptionExpiries,
 }                                                               from './services/optionsService';
+
+// ── Notifications ─────────────────────────────────────────────────────────────
+export type { ApiNotification }                                from './services/notificationService';
+export {
+  fetchNotifications,
+  markAllNotificationsRead,
+  markNotificationRead,
+  dismissNotification,
+}                                                               from './services/notificationService';
+
+// ── Referrals ─────────────────────────────────────────────────────────────────
+export type { ReferralStats, ReferralMilestone }              from './services/referralService';
+export {
+  fetchReferralStats,
+  claimReferral,
+}                                                               from './services/referralService';
+
+// ── Financial statements ──────────────────────────────────────────────────────
+export type { IncomeStatementRow }                            from './services/financialsService';
+export { fetchIncomeStatement }                               from './services/financialsService';

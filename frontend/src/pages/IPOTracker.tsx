@@ -1,7 +1,9 @@
 import { useState } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import Pagination from '../components/ui/Pagination';
+import { fetchOpenIPOs, fetchUpcomingIPOs, fetchListedIPOs, fetchSMEIPOs } from '../lib/api';
 
 const PER_PAGE = 10;
 import {
@@ -50,6 +52,63 @@ const ELSS_FUNDS = [
   { name: 'DSP ELSS Tax Saver',            amc: 'DSP',      nav: 108.42, returns1y: 24.2, returns3y: 21.8, returns5y: 20.1, lockIn: 3, expenseRatio: 0.82, fundManager: 'Rohit Singhania',  rating: 4, minSIP: 500  },
 ];
 
+/* ── Backend → view mappers (the demo arrays above are the offline fallback) ─ */
+interface BackendOpenIpo     { name: string; sector: string; exchange: string; price_band: string; issue_size: string; open_date: string; close_date: string; gmp: number | null; gmp_pct: number | null; rating: number; subscription: { overall: number; qib: number; nii: number; retail: number }; type: string; icon: string; }
+interface BackendUpcomingIpo { name: string; sector: string; price_band: string; issue_size: string; open_date: string; gmp: number | null; rating: number; icon: string; }
+interface BackendListedIpo   { name: string; sector: string; issue_price: number; cmp: number; list_date: string; gain: number; gain_pct: number; }
+interface BackendSmeIpo      { name: string; sector: string; price_band: string; issue_size: string; open_date: string; gmp: number | null; subscription: number; icon: string; }
+
+const MONTHS = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+function fmtIpoDate(d?: string | null) {
+  if (!d) return 'TBA';
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(d);
+  if (!m) return d;
+  return `${MONTHS[Number(m[2]) - 1]} ${m[3]}, ${m[1]}`;
+}
+function ipoEmoji(sector?: string) {
+  const s = (sector ?? '').toLowerCase();
+  if (s.includes('auto') || s.includes('ev')) return '🚗';
+  if (s.includes('renew') || s.includes('solar') || s.includes('energy')) return '⚡';
+  if (s.includes('food')) return '🍱';
+  if (s.includes('it') || s.includes('tech')) return '💻';
+  if (s.includes('bank') || s.includes('nbfc') || s.includes('financ')) return '🏦';
+  if (s.includes('pharma') || s.includes('health')) return '🏥';
+  return '🏢';
+}
+const fmtGmp = (g?: number | null) => (g != null ? `+₹${g}` : 'TBA');
+
+const mapOpenIpo = (o: BackendOpenIpo) => ({
+  company: o.name, sector: o.sector, exchange: o.exchange,
+  opens: fmtIpoDate(o.open_date), closes: fmtIpoDate(o.close_date),
+  price: o.price_band, size: o.issue_size,
+  gmp: fmtGmp(o.gmp), gmpPct: o.gmp_pct ?? 0,
+  subscription: o.subscription?.overall ?? 0,
+  rating: Math.round(o.rating ?? 0),
+  type: o.type === 'sme' ? 'SME' : 'Mainboard',
+  logo: o.icon || ipoEmoji(o.sector),
+  subBreakup: o.subscription ? { qib: o.subscription.qib, nii: o.subscription.nii, retail: o.subscription.retail } : undefined,
+});
+const mapUpcomingIpo = (u: BackendUpcomingIpo) => ({
+  company: u.name, sector: u.sector, exchange: 'NSE/BSE',
+  opens: fmtIpoDate(u.open_date), closes: 'TBA',
+  price: u.price_band, size: u.issue_size,
+  gmp: fmtGmp(u.gmp), gmpPct: 0,
+  subscription: null as number | null,
+  rating: Math.round(u.rating ?? 0),
+  type: 'Mainboard', logo: u.icon || ipoEmoji(u.sector),
+});
+const mapListedIpo = (l: BackendListedIpo) => ({
+  company: l.name, sector: l.sector, exchange: 'NSE/BSE',
+  listDate: fmtIpoDate(l.list_date), issuePrice: l.issue_price, cmp: l.cmp,
+  gain: l.gain_pct, gmp: null as string | null, type: 'Mainboard', logo: ipoEmoji(l.sector),
+});
+const mapSmeIpo = (s: BackendSmeIpo) => ({
+  company: s.name, sector: s.sector, exchange: 'BSE SME',
+  opens: fmtIpoDate(s.open_date), price: s.price_band, size: s.issue_size,
+  gmp: fmtGmp(s.gmp), gmpPct: 0, subscription: s.subscription ?? 0,
+  rating: 4, logo: s.icon || ipoEmoji(s.sector),
+});
+
 /* ── Helpers ────────────────────────────────────────────────────── */
 const cardV = {
   hidden: { opacity: 0, y: 16 },
@@ -88,10 +147,31 @@ const CONNECTED_BROKERS = [
 export default function IPOTracker() {
   const navigate = useNavigate();
   const isMobile = useIsMobile();
+
+  // ── Live data from /ipo/* — falls back to the demo arrays when offline ──
+  const openQuery     = useQuery({ queryKey: ['ipo', 'open'],     queryFn: fetchOpenIPOs });
+  const upcomingQuery = useQuery({ queryKey: ['ipo', 'upcoming'], queryFn: fetchUpcomingIPOs });
+  const listedQuery   = useQuery({ queryKey: ['ipo', 'listed'],   queryFn: fetchListedIPOs });
+  const smeQuery      = useQuery({ queryKey: ['ipo', 'sme'],      queryFn: fetchSMEIPOs });
+
+  const openIpos: typeof OPEN_IPOS = openQuery.data
+    ? (openQuery.data as unknown as BackendOpenIpo[]).map(mapOpenIpo) as unknown as typeof OPEN_IPOS
+    : OPEN_IPOS;
+  const upcomingIpos: typeof UPCOMING_IPOS = upcomingQuery.data
+    ? (upcomingQuery.data as unknown as BackendUpcomingIpo[]).map(mapUpcomingIpo) as unknown as typeof UPCOMING_IPOS
+    : UPCOMING_IPOS;
+  const listedIpos: typeof LISTED_IPOS = listedQuery.data
+    ? (listedQuery.data as unknown as BackendListedIpo[]).map(mapListedIpo) as unknown as typeof LISTED_IPOS
+    : LISTED_IPOS;
+  const smeIpos: typeof SME_IPOS = smeQuery.data
+    ? (smeQuery.data as unknown as BackendSmeIpo[]).map(mapSmeIpo) as unknown as typeof SME_IPOS
+    : SME_IPOS;
+  const isLive = Boolean(openQuery.data || upcomingQuery.data || listedQuery.data || smeQuery.data);
+
   const [tab, setTab] = useState<Tab>('open');
   const [listedPage, setListedPage] = useState(1);
-  const listedTotalPages = Math.ceil(LISTED_IPOS.length / PER_PAGE);
-  const listedRows = LISTED_IPOS.slice((listedPage - 1) * PER_PAGE, listedPage * PER_PAGE);
+  const listedTotalPages = Math.ceil(listedIpos.length / PER_PAGE);
+  const listedRows = listedIpos.slice((listedPage - 1) * PER_PAGE, listedPage * PER_PAGE);
   const [applyModal, setApplyModal] = useState<{ company: string; price: string } | null>(null);
   const [applySuccess, setApplySuccess] = useState<string | null>(null);
 
@@ -108,13 +188,18 @@ export default function IPOTracker() {
         <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexWrap: 'wrap', gap: 12, marginBottom: 20 }}>
           <div>
             <h1 style={{ fontSize: 23, fontWeight: 800, color: 'var(--tx)', letterSpacing: '-0.03em', marginBottom: 4 }}>IPO Tracker</h1>
-            <p style={{ fontSize: 13, color: 'var(--tx-3)' }}>Mainboard · SME/Emerge · ELSS · GMP · Subscription Status</p>
+            <p style={{ fontSize: 13, color: 'var(--tx-3)' }}>
+              Mainboard · SME/Emerge · ELSS · GMP · Subscription Status
+              <span style={{ color: isLive ? 'var(--gain)' : 'var(--gold)', marginLeft: 8, fontWeight: 600 }}>
+                {isLive ? '● Live' : '● Demo'}
+              </span>
+            </p>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>
             {[
-              { label: 'Open Now',   value: OPEN_IPOS.length,    color: 'var(--gain)' },
-              { label: 'Upcoming',   value: UPCOMING_IPOS.length, color: 'var(--gold)' },
-              { label: 'SME Active', value: SME_IPOS.length,     color: 'var(--purple)' },
+              { label: 'Open Now',   value: openIpos.length,     color: 'var(--gain)' },
+              { label: 'Upcoming',   value: upcomingIpos.length, color: 'var(--gold)' },
+              { label: 'SME Active', value: smeIpos.length,      color: 'var(--purple)' },
             ].map((s, i) => (
               <div key={i} style={{ padding: '8px 16px', background: 'var(--bg-card)', border: '1px solid var(--border)', borderRadius: 10, textAlign: 'center' }}>
                 <div className="num" style={{ fontSize: 18, fontWeight: 800, color: s.color }}>{s.value}</div>
@@ -147,7 +232,7 @@ export default function IPOTracker() {
         {tab === 'open' && (
           <motion.div key="open" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 18 }}>
-              {OPEN_IPOS.map((ipo, i) => (
+              {openIpos.map((ipo, i) => (
                 <motion.div key={ipo.company} custom={i} variants={cardV} initial="hidden" animate="visible"
                   className="glass-card" style={{ padding: 28, border: '1px solid rgba(244,117,32,0.3)' }}>
                   <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : '1fr 1fr 1fr', gap: 24 }}>
@@ -229,7 +314,7 @@ export default function IPOTracker() {
         {tab === 'upcoming' && (
           <motion.div key="upcoming" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: 16 }}>
-              {UPCOMING_IPOS.map((ipo, i) => (
+              {upcomingIpos.map((ipo, i) => (
                 <motion.div key={ipo.company} custom={i} variants={cardV} initial="hidden" animate="visible"
                   whileHover={{ y: -4 }} className="glass-card" style={{ padding: 24, cursor: 'default' }}>
                   <div style={{ display: 'flex', alignItems: 'flex-start', gap: 14, marginBottom: 18 }}>
@@ -321,7 +406,7 @@ export default function IPOTracker() {
                 </table>
               </div>
               <div style={{ padding: '12px 20px', borderTop: '1px solid var(--border)' }}>
-                <Pagination page={listedPage} totalPages={listedTotalPages} onPageChange={setListedPage} totalItems={LISTED_IPOS.length} perPage={PER_PAGE} />
+                <Pagination page={listedPage} totalPages={listedTotalPages} onPageChange={setListedPage} totalItems={listedIpos.length} perPage={PER_PAGE} />
               </div>
             </div>
           </motion.div>
@@ -337,7 +422,7 @@ export default function IPOTracker() {
               </div>
             </div>
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? '1fr' : 'repeat(2,1fr)', gap: 16 }}>
-              {SME_IPOS.map((ipo, i) => (
+              {smeIpos.map((ipo, i) => (
                 <motion.div key={ipo.company} custom={i} variants={cardV} initial="hidden" animate="visible"
                   whileHover={{ y: -3 }} className="glass-card" style={{ padding: 22, border: '1px solid rgba(167,139,250,0.2)' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>

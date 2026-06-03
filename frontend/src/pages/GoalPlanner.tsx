@@ -1,9 +1,9 @@
 import { useState, useMemo } from 'react';
-import { useMutation } from '@tanstack/react-query';
-import { Plus, Download, CheckCircle, Target, GraduationCap, Home, Sunset, Shield, ToggleLeft, ToggleRight, Table2, BarChart2, Info } from 'lucide-react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, Download, CheckCircle, Target, GraduationCap, Home, Sunset, Shield, ToggleLeft, ToggleRight, Table2, BarChart2, Info, AlertTriangle } from 'lucide-react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useStore } from '../store/useStore';
-import { saveGoal } from '../lib/api';
+import { saveGoal, fetchGoals } from '../lib/api';
 import { useIsMobile } from '../hooks/useBreakpoint';
 
 // India CPI historical data (MoSPI / RBI) — FY average
@@ -37,6 +37,8 @@ const ALLOC_META = [
   { label: 'Debt Funds',          color: '#06b6d4',       examples: ['HDFC Short Term', 'ICICI Liquid'] },
 ];
 
+interface SavedGoal { id: string; name: string; goal_type: string; target_amount: number; target_date: string; monthly_sip: number; }
+
 export default function GoalPlanner() {
   const { authToken } = useStore();
   const isMobile = useIsMobile();
@@ -51,6 +53,10 @@ export default function GoalPlanner() {
   const [showCpiInfo, setShowCpiInfo]   = useState(false);
   const [goalSaved, setGoalSaved]       = useState(false);
 
+  const queryClient = useQueryClient();
+  const goalsQuery = useQuery({ queryKey: ['goals', authToken], queryFn: () => fetchGoals(authToken) });
+  const savedGoals = (goalsQuery.data ?? []) as SavedGoal[];
+
   const goalMutation = useMutation({
     mutationFn: () => saveGoal({
       name: goalType.label,
@@ -59,8 +65,21 @@ export default function GoalPlanner() {
       target_date: new Date(new Date().getFullYear() + years, 2, 31).toISOString().split('T')[0],
       monthly_sip: monthlySavings,
     }, authToken),
-    onSuccess: () => setGoalSaved(true),
+    onSuccess: () => {
+      setGoalSaved(true);
+      queryClient.invalidateQueries({ queryKey: ['goals'] });
+    },
   });
+
+  const loadGoal = (g: SavedGoal) => {
+    const gt = goalTypes.find(t => t.key === g.goal_type) ?? goalTypes[goalTypes.length - 1];
+    setGoalType(gt);
+    setTargetAmount(g.target_amount);
+    setSavings(g.monthly_sip);
+    const yr = new Date(g.target_date).getFullYear() - new Date().getFullYear();
+    setYears(Math.min(40, Math.max(1, Number.isFinite(yr) && yr > 0 ? yr : 10)));
+    setGoalSaved(false);
+  };
 
   const plan = useMemo(() => {
     const r = annualReturn / 100 / 12;
@@ -152,10 +171,12 @@ export default function GoalPlanner() {
           >
             {inflationOn ? <ToggleRight size={16} /> : <ToggleLeft size={16} />}
             Inflation Adjusted ({inflationRate}%)
-            <button onClick={e => { e.stopPropagation(); setShowCpiInfo(v => !v); }}
+            <span role="button" tabIndex={0}
+              onClick={e => { e.stopPropagation(); setShowCpiInfo(v => !v); }}
+              onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setShowCpiInfo(v => !v); } }}
               style={{ background: 'none', border: 'none', padding: 0, cursor: 'pointer', color: 'inherit', display: 'flex' }}>
               <Info size={13} />
-            </button>
+            </span>
           </button>
           {inflationOn && (
             <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
@@ -186,10 +207,23 @@ export default function GoalPlanner() {
         </div>
       </div>
 
+      {/* Saved goals (loaded from /portfolio/goals; click to reopen in the planner) */}
+      {savedGoals.length > 0 && (
+        <div className="card" style={{ padding: '12px 16px', display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+          <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--tx-3)', marginRight: 2 }}>Saved Goals</span>
+          {savedGoals.map(g => (
+            <button key={g.id} onClick={() => loadGoal(g)}
+              style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--tx-2)', fontSize: 12.5, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
+              <Target size={12} color="var(--brand)" /> {g.name} · <span className="num">{fmt(g.target_amount)}</span>
+            </button>
+          ))}
+        </div>
+      )}
+
       {/* 4 Summary Cards */}
       <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2, 1fr)' : 'repeat(4, 1fr)', gap: isMobile ? 10 : 14 }}>
         {[
-          { label: 'Projected Corpus',              value: fmt(plan.projectedCorpus), color: plan.onTrack ? 'var(--gain)' : 'var(--gold)', sub: plan.onTrack ? 'On Track ✓' : 'Gap Detected' },
+          { label: 'Projected Corpus',              value: fmt(plan.projectedCorpus), color: plan.onTrack ? 'var(--gain)' : 'var(--gold)', sub: plan.onTrack ? 'On Track' : 'Gap Detected' },
           { label: inflationOn ? 'Inflation-Adj Target' : 'Target Amount', value: fmt(plan.inflatedTarget), color: 'var(--tx)', sub: inflationOn ? `6% p.a. over ${years}y` : `Nominal target` },
           { label: 'Required SIP',                  value: `₹${plan.reqSIP.toLocaleString('en-IN')}/mo`, color: plan.onTrack ? 'var(--tx-2)' : 'var(--loss)', sub: `You invest ₹${monthlySavings.toLocaleString('en-IN')}/mo` },
           { label: 'Wealth Gained',                 value: fmt(plan.wealthGained), color: 'var(--brand)', sub: `On ₹${fmt(plan.totalInvested)} invested` },
@@ -254,7 +288,9 @@ export default function GoalPlanner() {
           <div className="card" style={{ padding: 22, border: plan.onTrack ? '1px solid rgba(0,200,150,0.25)' : '1px solid rgba(245,166,35,0.25)' }}>
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 6 }}>
               <div style={{ fontSize: 14, fontWeight: 700, color: plan.onTrack ? 'var(--gain)' : 'var(--gold)' }}>
-                {plan.onTrack ? '✓ On Track' : '⚠ Savings Gap'}
+                {plan.onTrack
+                  ? <><CheckCircle size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} />On Track</>
+                  : <><AlertTriangle size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 5 }} />Savings Gap</>}
               </div>
               <button onClick={() => setShowTable(v => !v)}
                 style={{ display: 'flex', alignItems: 'center', gap: 5, padding: '5px 12px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'transparent', color: 'var(--tx-3)', fontSize: 12, cursor: 'pointer', fontFamily: 'inherit' }}>

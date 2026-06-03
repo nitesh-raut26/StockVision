@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Plus, X, Download, Info, ChevronLeft, BarChart2 } from 'lucide-react';
+import { Plus, X, Download, Info, ChevronLeft, BarChart2, Star } from 'lucide-react';
 import { useIsMobile } from '../hooks/useBreakpoint';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -183,7 +183,7 @@ export default function CompsAnalysis() {
                   style={{ background: r.isSubject ? 'rgba(244,117,32,0.06)' : 'transparent', borderBottom: '1px solid var(--border)', cursor: 'default' }}>
                   <td style={{ padding: '14px 14px' }}>
                     <div style={{ fontWeight: 700, fontSize: 13.5, color: r.isSubject ? 'var(--brand)' : 'var(--tx)' }}>{r.name}</div>
-                    {r.isSubject && <div style={{ fontSize: 11, color: 'var(--brand)', marginTop: 2, opacity: 0.7 }}>Subject Company ⭐</div>}
+                    {r.isSubject && <div style={{ fontSize: 11, color: 'var(--brand)', marginTop: 2, opacity: 0.7 }}>Subject Company <Star size={10} fill="currentColor" style={{ display: 'inline', verticalAlign: 'middle' }} /></div>}
                   </td>
                   <td className="num" style={{ textAlign: 'right', padding: '14px 14px', fontSize: 13, color: 'var(--tx)' }}>₹{r.revenue?.toLocaleString('en-IN')}</td>
                   <td className="num" style={{ textAlign: 'right', padding: '14px 14px', fontSize: 13, fontWeight: 600, color: r.revenueGrowth >= 0 ? 'var(--gain)' : 'var(--loss)' }}>
@@ -244,7 +244,7 @@ export default function CompsAnalysis() {
 
               {/* Subject row */}
               <tr style={{ background: 'rgba(244,117,32,0.06)', borderBottom: '1px solid rgba(244,117,32,0.2)', borderTop: '1px solid rgba(244,117,32,0.2)' }}>
-                <td style={{ padding: '14px 14px', fontSize: 13.5, fontWeight: 800, color: 'var(--brand)' }}>{subject.name} ⭐</td>
+                <td style={{ padding: '14px 14px', fontSize: 13.5, fontWeight: 800, color: 'var(--brand)' }}>{subject.name} <Star size={11} fill="currentColor" style={{ display: 'inline', verticalAlign: 'middle' }} /></td>
                 <td className="num" style={{ textAlign: 'right', padding: '14px 14px', fontSize: 13, color: 'var(--tx)' }}>₹{subjectRow.marketCap.toLocaleString('en-IN')}</td>
                 <td className="num" style={{ textAlign: 'right', padding: '14px 14px', fontSize: 13, color: 'var(--tx)' }}>₹{Math.round(subjectRow.ev).toLocaleString('en-IN')}</td>
                 <td className="num" style={{ textAlign: 'right', padding: '14px 14px', fontSize: 13, color: 'var(--tx)' }}>{subjectRow.evRevenue}x</td>

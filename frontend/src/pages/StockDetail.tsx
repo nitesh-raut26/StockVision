@@ -16,7 +16,7 @@ import {
 import { mockStocks, mockNews, generateChartData } from '../data/mockData';
 import { useStore } from '../store/useStore';
 import ConvictionBadge from '../components/ui/ConvictionBadge';
-import { fetchStockDetails } from '../lib/api';
+import { fetchStockDetails, fetchIncomeStatement, fetchAnalystTargets, fetchStockNews, type IncomeStatementRow } from '../lib/api';
 import TradingViewChart, { pushTick } from '../components/charts/TradingViewChart';
 import type { AreaPoint } from '../components/charts/TradingViewChart';
 import type { ISeriesApi } from 'lightweight-charts';
@@ -166,6 +166,17 @@ const qData = [
   { q: 'Q2FY25', rev: 271200, ebitda: 51400, pat: 27100, eps: 40.0 },
 ];
 
+// Map a backend income-statement row (₹ crore) → the quarterly chart shape.
+function mapIncomeRow(d: IncomeStatementRow) {
+  return {
+    q:      d.period_label,
+    rev:    Math.round(d.revenue ?? 0),
+    ebitda: Math.round(d.ebitda ?? 0),
+    pat:    Math.round(d.pat ?? 0),
+    eps:    d.eps_basic ?? d.eps_diluted ?? 0,
+  };
+}
+
 const ratingStyle = (r: string) =>
   r === 'Buy'  ? { bg: 'rgba(45,181,98,0.12)',  color: 'var(--gain)' } :
   r === 'Sell' ? { bg: 'rgba(229,57,53,0.12)',   color: 'var(--loss)' } :
@@ -204,6 +215,16 @@ export default function StockDetail() {
     queryFn: () => fetchStockDetails(ticker ?? 'HAL'),
   });
 
+  // Quarterly financials from /financials/{ticker}/income (demo figures offline)
+  const financialsQuery = useQuery({
+    queryKey: ['financials', ticker],
+    queryFn: () => fetchIncomeStatement(ticker ?? 'HAL'),
+  });
+  const qDataLive: typeof qData = financialsQuery.data && financialsQuery.data.length
+    ? (financialsQuery.data.slice(-6).map(mapIncomeRow) as unknown as typeof qData)
+    : qData;
+  const finLive = Boolean(financialsQuery.data && financialsQuery.data.length);
+
   const stock      = detailQuery.data?.stock ?? mockStocks.find(s => s.ticker === ticker) ?? mockStocks[0];
   const inWatchlist = watchlist.includes(stock.ticker);
 
@@ -225,6 +246,15 @@ export default function StockDetail() {
   }, [detailQuery.data?.history, stock.price]);
 
   const stockNews = mockNews.filter(n => n.ticker === stock.ticker || n.sector === stock.sector).slice(0, 4);
+
+  // Analyst targets + news from /stocks/{ticker}/analysts|news (demo fallback)
+  const analystsQuery = useQuery({ queryKey: ['analysts', ticker], queryFn: () => fetchAnalystTargets(ticker ?? 'HAL') });
+  const analystData = analystsQuery.data ?? analystTargets;
+  const analystsLive = Boolean(analystsQuery.data);
+
+  const newsQuery = useQuery({ queryKey: ['stock-news', ticker], queryFn: () => fetchStockNews(ticker ?? 'HAL') });
+  const newsData: typeof stockNews = (newsQuery.data as unknown as typeof stockNews) ?? stockNews;
+  const newsLive = Boolean(newsQuery.data);
 
   /* ─── Technical indicator data ──────────────────────────────── */
   const indicators = useMemo(() => {
@@ -375,7 +405,7 @@ export default function StockDetail() {
             onClick={handleAudio}
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 12, border: audioPlaying ? '1px solid rgba(245,166,35,0.5)' : '1px solid var(--border)', background: audioPlaying ? 'rgba(245,166,35,0.1)' : 'var(--bg-card)', color: audioPlaying ? 'var(--gold)' : 'var(--tx-2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
             <Volume2 size={14} />
-            {audioPlaying ? '🎙️ Playing in Hindi...' : 'AI Summary in Hindi'}
+            {audioPlaying ? 'Playing in Hindi…' : 'AI Summary in Hindi'}
           </motion.button>
 
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
@@ -397,7 +427,7 @@ export default function StockDetail() {
       {audioPlaying && (
         <motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
           style={{ background: 'rgba(245,166,35,0.08)', border: '1px solid rgba(245,166,35,0.3)', borderRadius: 14, padding: '14px 18px', fontSize: 13.5, color: 'var(--gold)', lineHeight: 1.6 }}>
-          🎙️ <strong>{stock.ticker} ka conviction score {stock.convictionScore} hai.</strong> Yeh {stock.sector} sector ki ek strong company hai. 12-month target ₹{stock.target12m} hai, jo current price se {stock.upside.toFixed(1)}% upar hai. Risk level: {stock.risk}.
+          <Volume2 size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} /><strong>{stock.ticker} ka conviction score {stock.convictionScore} hai.</strong> Yeh {stock.sector} sector ki ek strong company hai. 12-month target ₹{stock.target12m} hai, jo current price se {stock.upside.toFixed(1)}% upar hai. Risk level: {stock.risk}.
         </motion.div>
       )}
 
@@ -625,7 +655,7 @@ export default function StockDetail() {
                   ))}
                 </div>
                 <p style={{ fontSize: 11, color: 'var(--tx-3)', marginTop: 14, lineHeight: 1.5, padding: '10px 12px', background: 'var(--bg-elevated)', borderRadius: 8 }}>
-                  ⚠️ Technical indicators are based on historical price data. Use in conjunction with fundamental analysis. Not investment advice.
+                  <AlertCircle size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />Technical indicators are based on historical price data. Use in conjunction with fundamental analysis. Not investment advice.
                 </p>
               </div>
             )}
@@ -663,9 +693,12 @@ export default function StockDetail() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <Target size={14} color="var(--brand)" />
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>Analyst Targets</h3>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: analystsLive ? 'var(--gain)' : 'var(--tx-3)' }}>
+                {analystsLive ? '● Live' : '● Demo'}
+              </span>
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              {analystTargets.map((a, i) => {
+              {analystData.map((a, i) => {
                 const rs = ratingStyle(a.rating);
                 return (
                   <motion.div key={i} initial={{ opacity: 0, x: -10 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: i * 0.08 }}
@@ -691,6 +724,9 @@ export default function StockDetail() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <DollarSign size={14} color="var(--brand)" />
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>Quarterly Financials</h3>
+                <span style={{ fontSize: 10.5, fontWeight: 700, color: finLive ? 'var(--gain)' : 'var(--tx-3)' }}>
+                  {finLive ? '● Live' : '● Demo'}
+                </span>
               </div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {[
@@ -708,7 +744,7 @@ export default function StockDetail() {
             </div>
             <div style={{ height: 180 }}>
               <ResponsiveContainer width="100%" height="100%" debounce={50}>
-                <BarChart data={qData} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
+                <BarChart data={qDataLive} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
                   <CartesianGrid strokeDasharray="3 3" stroke="var(--border)" vertical={false} />
                   <XAxis dataKey="q" tick={{ fill: 'var(--tx-3)', fontSize: 10 }} axisLine={false} tickLine={false} />
                   <YAxis tick={{ fill: 'var(--tx-3)', fontSize: 9 }} axisLine={false} tickLine={false} width={44}
@@ -723,8 +759,8 @@ export default function StockDetail() {
             </div>
             {/* QoQ change row */}
             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: 6, marginTop: 12 }}>
-              {qData.map((q, i) => {
-                const prev = i > 0 ? qData[i - 1][qMetric] : null;
+              {qDataLive.map((q, i) => {
+                const prev = i > 0 ? qDataLive[i - 1][qMetric] : null;
                 const curr = q[qMetric];
                 const chg  = prev ? ((curr - prev) / prev * 100).toFixed(1) : null;
                 return (
@@ -800,10 +836,15 @@ export default function StockDetail() {
 
           {/* Related News */}
           <motion.div variants={cardVariant} className="glass-card" style={{ padding: 22 }}>
-            <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)', marginBottom: 14 }}>Related News</h3>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
+              <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>Related News</h3>
+              <span style={{ fontSize: 10.5, fontWeight: 700, color: newsLive ? 'var(--gain)' : 'var(--tx-3)' }}>
+                {newsLive ? '● Live' : '● Demo'}
+              </span>
+            </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {stockNews.map((n, i) => (
-                <div key={n.id} style={{ paddingBottom: 12, marginBottom: 12, borderBottom: i < stockNews.length - 1 ? '1px solid var(--border)' : 'none' }}>
+              {newsData.map((n, i) => (
+                <div key={n.id} style={{ paddingBottom: 12, marginBottom: 12, borderBottom: i < newsData.length - 1 ? '1px solid var(--border)' : 'none' }}>
                   <p style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.55, marginBottom: 6 }}>{n.headline}</p>
                   <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <span style={{ fontSize: 11, color: 'var(--tx-3)' }}>{n.time}</span>

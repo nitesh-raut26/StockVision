@@ -1,9 +1,11 @@
 import { useState, useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import PlanGate, { usePlanAccess } from '../components/ui/PlanGate';
+import { runBacktest as runBacktestApi, type BacktestPayload } from '../lib/api';
 import {
   Play, RotateCcw, TrendingUp, TrendingDown, AlertCircle,
   BarChart3, Activity, Zap, Plus, Trash2, ChevronUp, ChevronDown,
+  Sparkles, Target, Settings, Clock, type LucideIcon,
 } from 'lucide-react';
 import Dropdown from '../components/ui/Dropdown';
 import {
@@ -28,13 +30,21 @@ interface BacktestResult {
 }
 
 /* ── Strategies ─────────────────────────────────────────────────── */
-const STRATEGIES: { id: StrategyType; name: string; desc: string; color: string; icon: string }[] = [
-  { id: 'rsi_oversold',  name: 'RSI Oversold Bounce',  desc: 'Buy when RSI(14) drops below 30, sell above 70', color: '#22D3EE',  icon: '📉' },
-  { id: 'macd_cross',    name: 'MACD Crossover',        desc: 'Buy on MACD bullish cross, sell on bearish cross', color: '#A78BFA', icon: '📊' },
-  { id: 'golden_cross',  name: 'Golden/Death Cross',    desc: '50 DMA crosses 200 DMA buy/sell signals',         color: '#F5A623',  icon: '✨' },
-  { id: 'bb_bounce',     name: 'Bollinger Band Bounce', desc: 'Buy at lower band, sell at upper band',            color: '#00C896',  icon: '🎯' },
-  { id: 'custom',        name: 'Custom Strategy',       desc: 'Build your own multi-condition strategy',          color: '#f47520',  icon: '⚙️' },
+const STRATEGIES: { id: StrategyType; name: string; desc: string; color: string; icon: LucideIcon }[] = [
+  { id: 'rsi_oversold',  name: 'RSI Oversold Bounce',  desc: 'Buy when RSI(14) drops below 30, sell above 70', color: '#22D3EE',  icon: TrendingDown },
+  { id: 'macd_cross',    name: 'MACD Crossover',        desc: 'Buy on MACD bullish cross, sell on bearish cross', color: '#A78BFA', icon: Activity },
+  { id: 'golden_cross',  name: 'Golden/Death Cross',    desc: '50 DMA crosses 200 DMA buy/sell signals',         color: '#F5A623',  icon: Sparkles },
+  { id: 'bb_bounce',     name: 'Bollinger Band Bounce', desc: 'Buy at lower band, sell at upper band',            color: '#00C896',  icon: Target },
+  { id: 'custom',        name: 'Custom Strategy',       desc: 'Build your own multi-condition strategy',          color: '#f47520',  icon: Settings },
 ];
+
+// Preset strategy logic — replaces the previous inline emoji-prefixed text.
+const STRATEGY_LOGIC: Record<string, { buy: string; sell: string; note: string }> = {
+  rsi_oversold: { buy: 'RSI(14) crosses below 30 (oversold)',     sell: 'RSI(14) crosses above 70 (overbought)',        note: 'Hold: minimum 5 trading days' },
+  macd_cross:   { buy: 'MACD Line crosses above Signal Line',      sell: 'MACD Line crosses below Signal Line',           note: 'Parameters: Fast 12, Slow 26, Signal 9' },
+  golden_cross: { buy: 'EMA(50) crosses above EMA(200)',           sell: 'EMA(50) crosses below EMA(200)',                note: 'Long-term trend-following strategy' },
+  bb_bounce:    { buy: 'Price touches lower Bollinger Band (2σ)',  sell: 'Price touches upper Bollinger Band or middle',  note: 'Mean-reversion strategy, works in sideways markets' },
+};
 
 const TICKERS = ['NIFTY 50', 'HAL', 'RELIANCE', 'HDFCBANK', 'TCS', 'INFY', 'BEL', 'MTAR', 'PARAS'];
 const INDICATORS = ['RSI(14)', 'MACD Line', 'Signal Line', 'EMA(20)', 'EMA(50)', 'EMA(200)', 'Close Price', 'Volume', 'ATR(14)', 'BB Upper', 'BB Lower'];
@@ -43,8 +53,8 @@ const OPS: { v: ConditionOp; l: string }[] = [
   { v: 'crosses_above', l: 'crosses above' }, { v: 'crosses_below', l: 'crosses below' },
 ];
 
-/* ── Simulate backtest ──────────────────────────────────────────── */
-function runBacktest(strategy: StrategyType, ticker: string, period: string): BacktestResult {
+/* ── Offline fallback: deterministic client-side simulation ─────── */
+function simulateBacktest(strategy: StrategyType, ticker: string, period: string): BacktestResult {
   const months = period === '1Y' ? 12 : period === '3Y' ? 36 : period === '5Y' ? 60 : 120;
   const seed = strategy.charCodeAt(0) + ticker.charCodeAt(0);
   const rand = (i: number) => Math.sin(seed + i) * 0.5 + 0.5;
@@ -94,6 +104,42 @@ function runBacktest(strategy: StrategyType, ticker: string, period: string): Ba
   return { totalReturn, cagr, maxDrawdown, sharpe, winRate, avgWin, avgLoss, totalTrades, profitFactor, equity: equityCurve, trades };
 }
 
+/* ── Backend (/backtest/run) → view mapping ─────────────────────── */
+interface BackendBacktest {
+  metrics: {
+    total_return: number; cagr: number; max_drawdown: number; sharpe: number;
+    win_rate: number; avg_win: number; avg_loss: number; total_trades: number; profit_factor: number;
+  };
+  equity:   { date: string; value: number; benchmark: number }[];
+  drawdown: { date: string; drawdown: number }[];
+  trades:   { date: string; action: string; price: number; pnl: number; duration: number }[];
+}
+function mapBacktest(r: BackendBacktest, capital: number): BacktestResult {
+  const m   = r.metrics;
+  const cap = capital || 100000;
+  return {
+    // Backend returns whole-percent metrics; the UI multiplies fractions by 100.
+    totalReturn:  (m.total_return ?? 0) / 100,
+    cagr:         (m.cagr ?? 0) / 100,
+    maxDrawdown:  (m.max_drawdown ?? 0) / 100,
+    sharpe:       m.sharpe ?? 0,
+    winRate:      m.win_rate ?? 0,
+    // Backend avg win/loss are ₹ per trade; the UI shows them as % of capital.
+    avgWin:       Math.abs(m.avg_win ?? 0)  / cap * 100,
+    avgLoss:      Math.abs(m.avg_loss ?? 0) / cap * 100,
+    totalTrades:  m.total_trades ?? 0,
+    profitFactor: m.profit_factor ?? 0,
+    equity:       r.equity ?? [],
+    trades:       (r.trades ?? []).slice(-20).map(t => ({
+      date:     t.date,
+      action:   t.action === 'BUY' ? 'BUY' : 'SELL',
+      price:    t.price,
+      pnl:      t.pnl,
+      duration: t.duration,
+    })),
+  };
+}
+
 /* ── Component ──────────────────────────────────────────────────── */
 export default function Backtesting() {
   const isMobile = useIsMobile();
@@ -103,18 +149,34 @@ export default function Backtesting() {
   const [capital, setCapital]     = useState(100000);
   const [running, setRunning]     = useState(false);
   const [result, setResult]       = useState<BacktestResult | null>(null);
+  const [engine, setEngine]       = useState<'live' | 'local'>('local');
   const [conditions, setConditions] = useState<Condition[]>([
     { id: '1', indicator: 'RSI(14)', op: '<', value: 30 },
   ]);
   const [activeChart, setActiveChart] = useState<'equity' | 'drawdown' | 'trades'>('equity');
 
-  const handleRun = () => {
+  const handleRun = async () => {
     setRunning(true);
     setResult(null);
-    setTimeout(() => {
-      setResult(runBacktest(strategy, ticker, period));
-      setRunning(false);
-    }, 1800);
+    const payload: BacktestPayload = {
+      strategy, ticker, period, capital,
+      conditions: strategy === 'custom'
+        ? conditions.map(c => ({ indicator: c.indicator, op: c.op, value: c.value }))
+        : [],
+    };
+    // Run the backend engine, but keep the simulation animation up for ≥1.2s.
+    const [api] = await Promise.all([
+      runBacktestApi(payload),
+      new Promise(res => setTimeout(res, 1200)),
+    ]);
+    if (api) {
+      setEngine('live');
+      setResult(mapBacktest(api as unknown as BackendBacktest, capital));
+    } else {
+      setEngine('local');
+      setResult(simulateBacktest(strategy, ticker, period));
+    }
+    setRunning(false);
   };
 
   const addCondition = () =>
@@ -150,7 +212,7 @@ export default function Backtesting() {
           {STRATEGIES.map(s => (
             <motion.button key={s.id} whileHover={{ y: -2 }} whileTap={{ scale: 0.97 }} onClick={() => setStrategy(s.id)}
               style={{ padding: '14px 12px', borderRadius: 12, border: strategy === s.id ? `1px solid ${s.color}60` : '1px solid var(--border)', background: strategy === s.id ? `${s.color}10` : 'var(--surface-mid)', cursor: 'pointer', textAlign: 'left', fontFamily: 'inherit', transition: 'all 180ms' }}>
-              <div style={{ fontSize: 22, marginBottom: 8 }}>{s.icon}</div>
+              <div style={{ marginBottom: 8 }}><s.icon size={22} color={strategy === s.id ? s.color : 'var(--tx-2)'} /></div>
               <div style={{ fontSize: 12.5, fontWeight: 700, color: strategy === s.id ? s.color : 'var(--tx)', marginBottom: 4 }}>{s.name}</div>
               <div style={{ fontSize: 11, color: 'var(--tx-3)', lineHeight: 1.5 }}>{s.desc}</div>
             </motion.button>
@@ -236,32 +298,20 @@ export default function Backtesting() {
             ) : (
               <div style={{ padding: '14px 16px', background: `${activeSt.color}08`, border: `1px solid ${activeSt.color}25`, borderRadius: 12 }}>
                 <div style={{ fontSize: 13, color: 'var(--tx)', marginBottom: 10, fontWeight: 700 }}>{activeSt.name}</div>
-                {strategy === 'rsi_oversold' && (
-                  <div style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.7 }}>
-                    🟢 <strong>BUY:</strong> RSI(14) crosses below 30 (oversold)<br />
-                    🔴 <strong>SELL:</strong> RSI(14) crosses above 70 (overbought)<br />
-                    ⏱ Hold: minimum 5 trading days
-                  </div>
-                )}
-                {strategy === 'macd_cross' && (
-                  <div style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.7 }}>
-                    🟢 <strong>BUY:</strong> MACD Line crosses above Signal Line<br />
-                    🔴 <strong>SELL:</strong> MACD Line crosses below Signal Line<br />
-                    ⏱ Parameters: Fast 12, Slow 26, Signal 9
-                  </div>
-                )}
-                {strategy === 'golden_cross' && (
-                  <div style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.7 }}>
-                    🟢 <strong>BUY:</strong> EMA(50) crosses above EMA(200)<br />
-                    🔴 <strong>SELL:</strong> EMA(50) crosses below EMA(200)<br />
-                    ⏱ Long-term trend-following strategy
-                  </div>
-                )}
-                {strategy === 'bb_bounce' && (
-                  <div style={{ fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.7 }}>
-                    🟢 <strong>BUY:</strong> Price touches lower Bollinger Band (2σ)<br />
-                    🔴 <strong>SELL:</strong> Price touches upper Bollinger Band or middle<br />
-                    ⏱ Mean-reversion strategy, works in sideways markets
+                {STRATEGY_LOGIC[strategy] && (
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 8, fontSize: 12.5, color: 'var(--tx-2)', lineHeight: 1.5 }}>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--gain)', flexShrink: 0, marginTop: 5 }} />
+                      <span><strong>BUY:</strong> {STRATEGY_LOGIC[strategy].buy}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--loss)', flexShrink: 0, marginTop: 5 }} />
+                      <span><strong>SELL:</strong> {STRATEGY_LOGIC[strategy].sell}</span>
+                    </div>
+                    <div style={{ display: 'flex', alignItems: 'flex-start', gap: 8 }}>
+                      <Clock size={13} color="var(--tx-3)" style={{ flexShrink: 0, marginTop: 2 }} />
+                      <span>{STRATEGY_LOGIC[strategy].note}</span>
+                    </div>
                   </div>
                 )}
               </div>
@@ -293,6 +343,12 @@ export default function Backtesting() {
 
         {result && !running && (
           <motion.div key="result" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }}>
+
+            <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 10 }}>
+              <span style={{ fontSize: 11.5, fontWeight: 600, color: engine === 'live' ? 'var(--gain)' : 'var(--gold)' }}>
+                {engine === 'live' ? '● Live backtest engine' : '● Offline simulation'}
+              </span>
+            </div>
 
             {/* Stats grid */}
             <div style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 12, marginBottom: 18 }}>
@@ -444,7 +500,7 @@ export default function Backtesting() {
         {!result && !running && (
           <motion.div key="empty" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="glass-card" style={{ padding: '60px 40px', textAlign: 'center' }}>
-              <div style={{ fontSize: 48, marginBottom: 16 }}>📈</div>
+              <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}><BarChart3 size={44} color="var(--tx-3)" /></div>
               <div style={{ fontSize: 17, fontWeight: 700, color: 'var(--tx)', marginBottom: 8 }}>Configure your strategy and click Run Backtest</div>
               <div style={{ fontSize: 13.5, color: 'var(--tx-3)', maxWidth: 500, margin: '0 auto' }}>
                 Choose a strategy preset or build custom conditions. We'll simulate it across {period} of {ticker} historical data.

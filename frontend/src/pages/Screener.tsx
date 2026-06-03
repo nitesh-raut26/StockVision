@@ -6,7 +6,7 @@ import {
   Filter, Download, RotateCcw, Search, Play,
   ChevronUp, ChevronDown, Package, Users, Terminal,
   SlidersHorizontal, Star, TrendingUp, TrendingDown,
-  ArrowUpRight, ChevronLeft, ChevronRight, Bell,
+  ArrowUpRight, ChevronLeft, ChevronRight, Bell, Lock,
 } from 'lucide-react';
 import { fetchScreener } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
@@ -482,7 +482,7 @@ export default function Screener() {
                       <div key={f.key} style={{ position: 'relative' }}>
                         {f.premium && !isPremium && (
                           <div style={{ position: 'absolute', inset: 0, zIndex: 5, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 4, background: 'var(--bg-card)', borderRadius: 8, border: '1px dashed rgba(244,117,32,0.4)', cursor: 'pointer' }} onClick={() => navigate('/app/settings')}>
-                            <span style={{ fontSize: 10, color: 'var(--brand)' }}>🔒 Premium</span>
+                            <span style={{ fontSize: 10, color: 'var(--brand)', display: 'inline-flex', alignItems: 'center', gap: 3 }}><Lock size={10} /> Premium</span>
                             <span style={{ fontSize: 10.5, fontWeight: 600, color: 'var(--brand)' }}>Upgrade →</span>
                           </div>
                         )}

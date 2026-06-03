@@ -1,6 +1,8 @@
 import { useState, useMemo } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
+import { fetchOptionsChain, fetchOptionExpiries } from '../lib/api';
 import PlanGate, { usePlanAccess } from '../components/ui/PlanGate';
 import {
   TrendingUp, TrendingDown, ChevronUp, ChevronDown, Activity,
@@ -15,6 +17,26 @@ interface OptionRow {
   callOI: number; callOIChg: number; callVol: number; callLTP: number; callChg: number; callIV: number;
   putOI: number;  putOIChg: number;  putVol: number;  putLTP: number;  putChg: number;  putIV: number;
   isATM?: boolean;
+}
+
+/* ── Backend (/options) → view mapping; demo generators below are the fallback ─ */
+interface BackendOptionRow {
+  strike: number;
+  call_ltp: number; call_oi: number; call_vol: number; call_iv: number;
+  put_ltp: number;  put_oi: number;  put_vol: number;  put_iv: number;
+  atm: boolean;
+}
+const mapOptionRow = (r: BackendOptionRow): OptionRow => ({
+  strike: r.strike,
+  callOI: r.call_oi, callOIChg: 0, callVol: r.call_vol, callLTP: r.call_ltp, callChg: 0, callIV: r.call_iv,
+  putOI:  r.put_oi,  putOIChg: 0,  putVol:  r.put_vol,  putLTP:  r.put_ltp,  putChg:  0, putIV:  r.put_iv,
+  isATM:  r.atm,
+});
+function fmtExpiryLabel(e: string) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(e);
+  if (!m) return e;
+  const M = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  return `${m[3]} ${M[Number(m[2]) - 1]} ${m[1]}`;
 }
 
 /* ── Mock data generators ──────────────────────────────────────── */
@@ -92,17 +114,34 @@ export default function OptionsChain() {
   const [view, setView]             = useState<'chain' | 'oi' | 'pcr'>('chain');
   const [search, setSearch]         = useState('');
 
-  const chain = useMemo(() => buildChain(underlying.spotPrice), [underlying.spotPrice]);
+  // ── Live expiries + chain from /options (falls back to the demo generator) ──
+  const expiriesQuery = useQuery({ queryKey: ['options', 'expiries'], queryFn: fetchOptionExpiries });
+  const expiries = expiriesQuery.data ?? EXPIRIES;
+  const activeExpiry = expiries.includes(expiry) ? expiry : expiries[0];
+
+  const chainQuery = useQuery({
+    queryKey: ['options', 'chain', underlying.symbol, activeExpiry],
+    queryFn: () => fetchOptionsChain(underlying.symbol, activeExpiry),
+  });
+  const isLive = Boolean(chainQuery.data);
+
+  const fallbackChain = useMemo(() => buildChain(underlying.spotPrice), [underlying.spotPrice]);
+  const chain: OptionRow[] = chainQuery.data
+    ? (chainQuery.data.chain as unknown as BackendOptionRow[]).map(mapOptionRow)
+    : fallbackChain;
+
+  const spot = chainQuery.data?.spot ?? underlying.spotPrice;
 
   const totalCallOI = chain.reduce((s, r) => s + r.callOI, 0);
   const totalPutOI  = chain.reduce((s, r) => s + r.putOI, 0);
-  const pcr = (totalPutOI / totalCallOI).toFixed(2);
+  const pcr = (chainQuery.data?.pcr ?? (totalCallOI ? totalPutOI / totalCallOI : 1)).toFixed(2);
   const maxCallOI = Math.max(...chain.map(r => r.callOI));
   const maxPutOI  = Math.max(...chain.map(r => r.putOI));
   const maxOI     = Math.max(maxCallOI, maxPutOI);
 
-  const supportStrike  = chain.slice().sort((a, b) => b.putOI  - a.putOI)[0]?.strike;
-  const resistStrike   = chain.slice().sort((a, b) => b.callOI - a.callOI)[0]?.strike;
+  const supportStrike  = chainQuery.data?.support    ?? chain.slice().sort((a, b) => b.putOI  - a.putOI)[0]?.strike;
+  const resistStrike   = chainQuery.data?.resistance ?? chain.slice().sort((a, b) => b.callOI - a.callOI)[0]?.strike;
+  const maxPain        = chainQuery.data?.max_pain   ?? Math.round(spot * 0.998 / (spot > 5000 ? 100 : 50)) * (spot > 5000 ? 100 : 50);
 
   const ivSkew = chain.find(r => r.isATM);
 
@@ -121,6 +160,9 @@ export default function OptionsChain() {
             </h1>
             <p style={{ fontSize: 13, color: 'var(--tx-3)' }}>
               NSE F&O · Live Put/Call OI · IV surface · Greeks
+              <span style={{ color: isLive ? 'var(--gain)' : 'var(--gold)', marginLeft: 8, fontWeight: 600 }}>
+                {isLive ? '● Live' : '● Demo'}
+              </span>
             </p>
           </div>
           {/* PCR signal pill */}
@@ -129,7 +171,7 @@ export default function OptionsChain() {
               <div style={{ fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', color: 'var(--tx-3)', marginBottom: 2 }}>PUT/CALL RATIO</div>
               <div style={{ fontSize: 22, fontWeight: 900, color: parseFloat(pcr) > 1 ? 'var(--gain)' : 'var(--loss)' }}>{pcr}</div>
               <div style={{ fontSize: 11, color: parseFloat(pcr) > 1.2 ? 'var(--gain)' : parseFloat(pcr) < 0.8 ? 'var(--loss)' : 'var(--gold)', fontWeight: 600, marginTop: 2 }}>
-                {parseFloat(pcr) > 1.2 ? '🐂 Bullish' : parseFloat(pcr) < 0.8 ? '🐻 Bearish' : '⚖️ Neutral'}
+                {parseFloat(pcr) > 1.2 ? 'Bullish' : parseFloat(pcr) < 0.8 ? 'Bearish' : 'Neutral'}
               </div>
             </div>
           </div>
@@ -156,8 +198,8 @@ export default function OptionsChain() {
           </div>
 
           <Dropdown
-            options={EXPIRIES.map(e => ({ label: e, value: e }))}
-            value={expiry}
+            options={expiries.map(e => ({ label: fmtExpiryLabel(e), value: e }))}
+            value={activeExpiry}
             onChange={setExpiry}
             style={{ minWidth: 160 }}
           />
@@ -178,8 +220,8 @@ export default function OptionsChain() {
       <motion.div custom={0} variants={cardV} initial="hidden" animate="visible"
         style={{ display: 'grid', gridTemplateColumns: isMobile ? 'repeat(2,1fr)' : 'repeat(4,1fr)', gap: 12 }}>
         {[
-          { label: `${underlying.symbol} Spot`, value: `₹${underlying.spotPrice.toLocaleString('en-IN')}`, sub: 'Current Price', color: 'var(--tx)', icon: <Activity size={15} color="var(--brand)" /> },
-          { label: 'Max Pain',   value: `₹${Math.round(underlying.spotPrice * 0.998 / (underlying.spotPrice > 5000 ? 100 : 50)) * (underlying.spotPrice > 5000 ? 100 : 50)}`, sub: 'Options expire near here', color: 'var(--gold)',  icon: <Zap size={15} color="var(--gold)" /> },
+          { label: `${underlying.symbol} Spot`, value: `₹${spot.toLocaleString('en-IN')}`, sub: 'Current Price', color: 'var(--tx)', icon: <Activity size={15} color="var(--brand)" /> },
+          { label: 'Max Pain',   value: `₹${maxPain.toLocaleString('en-IN')}`, sub: 'Options expire near here', color: 'var(--gold)',  icon: <Zap size={15} color="var(--gold)" /> },
           { label: 'Support',    value: `₹${supportStrike?.toLocaleString('en-IN')}`,   sub: 'Highest Put OI',  color: 'var(--gain)', icon: <TrendingUp size={15} color="var(--gain)" /> },
           { label: 'Resistance', value: `₹${resistStrike?.toLocaleString('en-IN')}`,    sub: 'Highest Call OI', color: 'var(--loss)', icon: <TrendingDown size={15} color="var(--loss)" /> },
         ].map((s, i) => (
@@ -281,7 +323,7 @@ export default function OptionsChain() {
                 <span>Total Call OI: <strong style={{ color: 'var(--gain)' }}>{fmt(totalCallOI)}</strong></span>
                 <span>Total Put OI: <strong style={{ color: 'var(--loss)' }}>{fmt(totalPutOI)}</strong></span>
                 <span>PCR: <strong style={{ color: parseFloat(pcr) > 1 ? 'var(--gain)' : 'var(--loss)' }}>{pcr}</strong></span>
-                <span>Expiry: <strong style={{ color: 'var(--brand)' }}>{expiry}</strong></span>
+                <span>Expiry: <strong style={{ color: 'var(--brand)' }}>{fmtExpiryLabel(activeExpiry)}</strong></span>
                 <span style={{ marginLeft: 'auto' }}>Lot size: {underlying.lot}</span>
               </div>
             </div>
@@ -292,7 +334,7 @@ export default function OptionsChain() {
         {view === 'oi' && (
           <motion.div key="oi" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
             <div className="glass-card" style={{ padding: 28 }}>
-              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--tx)', marginBottom: 20 }}>Open Interest Distribution — {underlying.symbol} {expiry}</h3>
+              <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--tx)', marginBottom: 20 }}>Open Interest Distribution — {underlying.symbol} {fmtExpiryLabel(activeExpiry)}</h3>
               <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
                 {chain.map((row, i) => {
                   const callPct = (row.callOI / maxOI) * 100;
@@ -335,7 +377,7 @@ export default function OptionsChain() {
                 <h3 style={{ fontSize: 15, fontWeight: 700, color: 'var(--tx)', marginBottom: 20 }}>IV Skew — Volatility Smile</h3>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
                   {chain.map((row, i) => {
-                    const moneyness = ((row.strike - underlying.spotPrice) / underlying.spotPrice * 100).toFixed(1);
+                    const moneyness = ((row.strike - spot) / spot * 100).toFixed(1);
                     return (
                       <div key={row.strike} style={{ display: 'grid', gridTemplateColumns: '80px 1fr 1fr 60px', gap: 10, alignItems: 'center' }}>
                         <span className="num" style={{ fontSize: 11.5, color: 'var(--tx-3)', fontWeight: 600 }}>{row.strike.toLocaleString('en-IN')}</span>

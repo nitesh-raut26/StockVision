@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import PlanGate, { usePlanAccess } from '../components/ui/PlanGate';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
-import { Download, Info, TrendingUp, ChevronLeft, BarChart2, Table2 } from 'lucide-react';
+import { Download, Info, TrendingUp, ChevronLeft, BarChart2, Table2, Check } from 'lucide-react';
 import { useIsMobile } from '../hooks/useBreakpoint';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -448,7 +448,7 @@ export default function DCFBuilder() {
                     <th style={{ textAlign: 'left', padding: '8px 10px', color: 'var(--tx-3)', fontWeight: 600, fontSize: 11 }}>WACC / TGR</th>
                     {tgRange.map(tg => (
                       <th key={tg} style={{ textAlign: 'center', padding: '8px 10px', color: tg === terminalGrowth ? 'var(--brand)' : 'var(--tx-2)', fontWeight: 600, fontSize: 11, whiteSpace: 'nowrap' }}>
-                        {tg === terminalGrowth ? `${tg}% ★` : `${tg}%`}
+                        {tg === terminalGrowth ? <>{tg}% <Check size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /></> : `${tg}%`}
                       </th>
                     ))}
                   </tr>
@@ -457,7 +457,7 @@ export default function DCFBuilder() {
                   {waccRange.map(w => (
                     <tr key={w}>
                       <td style={{ padding: '6px 10px', color: w === wacc ? 'var(--brand)' : 'var(--tx-2)', fontWeight: 600, fontSize: 11, whiteSpace: 'nowrap' }}>
-                        {w === wacc ? `${w.toFixed(1)}% ★` : `${w.toFixed(1)}%`}
+                        {w === wacc ? <>{w.toFixed(1)}% <Check size={10} style={{ display: 'inline', verticalAlign: 'middle' }} /></> : `${w.toFixed(1)}%`}
                       </td>
                       {tgRange.map(tg => {
                         const implied = impliedAt(w, tg);

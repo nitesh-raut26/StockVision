@@ -667,7 +667,7 @@ export default function Landing() {
               }}>
               {plan.badge && (
                 <div style={{ position: 'absolute', top: -13, left: '50%', transform: 'translateX(-50%)', background: 'linear-gradient(90deg,#f47520,#f5a623)', color: 'white', fontSize: 10.5, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', padding: '4px 16px', borderRadius: 99, whiteSpace: 'nowrap', boxShadow: '0 4px 14px rgba(244,117,32,0.4)' }}>
-                  ⭐ {plan.badge}
+                  <Star size={12} fill="currentColor" style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />{plan.badge}
                 </div>
               )}
               <div style={{ fontSize: 12, color: 'var(--tx-3)', fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', marginBottom: 8 }}>{plan.name}</div>

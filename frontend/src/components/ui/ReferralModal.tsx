@@ -1,7 +1,8 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Gift, Copy, Check, X, Users, IndianRupee } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useStore } from '../../store/useStore';
+import { fetchReferralStats, type ReferralStats } from '../../lib/api';
 
 interface Props { open: boolean; onClose: () => void; }
 
@@ -13,11 +14,31 @@ const MILESTONES = [
 ];
 
 export default function ReferralModal({ open, onClose }: Props) {
-  const { user } = useStore();
+  const { user, authToken } = useStore();
   const [copied, setCopied] = useState(false);
+  const [stats, setStats] = useState<ReferralStats | null>(null);
 
-  const code = `SV-${(user?.name ?? 'USER').toUpperCase().slice(0, 4)}-2026`;
+  // Pull live referral code, stats & milestones from /referrals/me when signed in
+  useEffect(() => {
+    if (!open || !authToken) return;
+    let active = true;
+    fetchReferralStats(authToken).then(s => { if (active && s) setStats(s); });
+    return () => { active = false; };
+  }, [open, authToken]);
+
+  const code = stats?.code ?? `SV-${(user?.name ?? 'USER').toUpperCase().slice(0, 4)}-2026`;
   const link = `https://stockvision.in/join?ref=${code}`;
+  const invited = stats?.invited ?? 3;
+  const earned  = stats?.earnedInr ?? 400;
+  const pending = stats?.pendingInr ?? 100;
+  const milestones = stats?.milestones?.length
+    ? stats.milestones.map(m => ({
+        invites: m.target,
+        reward:  m.reward,
+        label:   `${m.target} Friend${m.target > 1 ? 's' : ''}`,
+        done:    m.achieved,
+      }))
+    : MILESTONES;
 
   const copy = async (text: string) => {
     await navigator.clipboard.writeText(text);
@@ -65,9 +86,9 @@ export default function ReferralModal({ open, onClose }: Props) {
                 {/* Stats row */}
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 10 }}>
                   {[
-                    { label: 'Friends Invited', val: '3', icon: Users },
-                    { label: 'Total Earned',    val: '₹400', icon: IndianRupee },
-                    { label: 'Pending',         val: '₹100', icon: Gift },
+                    { label: 'Friends Invited', val: `${invited}`, icon: Users },
+                    { label: 'Total Earned',    val: `₹${earned}`, icon: IndianRupee },
+                    { label: 'Pending',         val: `₹${pending}`, icon: Gift },
                   ].map(({ label, val, icon: Icon }) => (
                     <div key={label} style={{ background: 'var(--bg-card)', borderRadius: 10, padding: '10px 12px', border: '1px solid var(--border)' }}>
                       <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--tx)', marginBottom: 2 }}>{val}</div>
@@ -100,7 +121,7 @@ export default function ReferralModal({ open, onClose }: Props) {
                 {/* Milestones */}
                 <div style={{ fontSize: 11.5, fontWeight: 700, color: 'var(--tx-3)', marginBottom: 10, textTransform: 'uppercase', letterSpacing: '0.06em' }}>Reward Milestones</div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {MILESTONES.map((m, i) => (
+                  {milestones.map((m, i) => (
                     <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '10px 14px', borderRadius: 10, background: m.done ? 'rgba(45,181,98,0.06)' : 'var(--bg-card)', border: `1px solid ${m.done ? 'rgba(45,181,98,0.2)' : 'var(--border)'}` }}>
                       <div style={{ width: 28, height: 28, borderRadius: 8, background: m.done ? 'rgba(45,181,98,0.15)' : 'var(--surface-mid)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
                         {m.done

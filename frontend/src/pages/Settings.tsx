@@ -962,7 +962,7 @@ export default function Settings() {
               <div style={{ padding: '20px 24px', display: 'flex', flexDirection: 'column', gap: 14 }}>
                 <div style={{ padding: '12px 14px', background: 'rgba(255,77,106,0.06)', borderRadius: 10, border: '1px solid rgba(255,77,106,0.2)' }}>
                   <p style={{ fontSize: 13, color: 'var(--tx-2)', margin: 0, lineHeight: 1.6 }}>
-                    ⚠️ This will permanently delete all your data including holdings, transactions, alerts, and API keys. <strong>This cannot be undone.</strong>
+                    <AlertCircle size={13} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />This will permanently delete all your data including holdings, transactions, alerts, and API keys. <strong>This cannot be undone.</strong>
                   </p>
                 </div>
 
@@ -1007,7 +1007,7 @@ export default function Settings() {
                     onClick={handleDeleteAccount}
                     disabled={deletingAccount || deleteConfirmText !== 'DELETE MY ACCOUNT'}
                     style={{ flex: 1, padding: '10px', borderRadius: 10, border: 'none', background: deleteConfirmText === 'DELETE MY ACCOUNT' ? 'var(--loss)' : 'rgba(255,77,106,0.2)', color: '#fff', fontSize: 13.5, fontWeight: 700, cursor: deleteConfirmText === 'DELETE MY ACCOUNT' ? 'pointer' : 'not-allowed', fontFamily: 'inherit', opacity: deletingAccount ? 0.7 : 1, transition: 'all 150ms' }}>
-                    {deletingAccount ? 'Deleting…' : '🗑️ Delete Forever'}
+                    {deletingAccount ? 'Deleting…' : <><Trash2 size={14} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 6 }} />Delete Forever</>}
                   </button>
                 </div>
               </div>

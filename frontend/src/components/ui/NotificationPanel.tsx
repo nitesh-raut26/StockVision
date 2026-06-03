@@ -1,13 +1,18 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Bell, TrendingUp, AlertTriangle, Gift, Info, Check, X } from 'lucide-react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useIsMobile } from '../../hooks/useBreakpoint';
+import { useStore } from '../../store/useStore';
+import { fetchNotifications, markAllNotificationsRead, markNotificationRead, dismissNotification } from '../../lib/api';
 import { TOPBAR_H } from '../layout/TopBar';
 
 type NotifType = 'price' | 'alert' | 'promo' | 'system';
 
+const NOTIF_TYPES: readonly string[] = ['price', 'alert', 'promo', 'system'];
+const toNotifType = (t: string): NotifType => (NOTIF_TYPES.includes(t) ? (t as NotifType) : 'system');
+
 interface Notif {
-  id: number;
+  id: string | number;
   type: NotifType;
   title: string;
   body: string;
@@ -40,17 +45,39 @@ function TypeIcon({ type }: { type: NotifType }) {
 }
 
 export default function NotificationPanel() {
+  const { authToken } = useStore();
   const [open, setOpen]   = useState(false);
   const [notifs, setNotifs] = useState<Notif[]>(INITIAL_NOTIFS);
   const isMobile = useIsMobile();
 
+  // Load real notifications from /notifications when signed in (demo seed otherwise)
+  useEffect(() => {
+    if (!authToken) return;
+    let active = true;
+    fetchNotifications(authToken).then(rows => {
+      if (active && rows && rows.length) {
+        setNotifs(rows.map(n => ({
+          id: n.id, type: toNotifType(n.type), title: n.title, body: n.body, time: n.ts, read: n.read,
+        })));
+      }
+    });
+    return () => { active = false; };
+  }, [authToken]);
+
   const unread      = notifs.filter(n => !n.read).length;
-  const markAllRead = () => setNotifs(ns => ns.map(n => ({ ...n, read: true })));
-  const dismiss     = (id: number, e: React.MouseEvent) => {
+  const markAllRead = () => {
+    setNotifs(ns => ns.map(n => ({ ...n, read: true })));
+    if (notifs.some(n => typeof n.id === 'string')) markAllNotificationsRead(authToken);
+  };
+  const dismiss     = (id: string | number, e: React.MouseEvent) => {
     e.stopPropagation();
     setNotifs(ns => ns.filter(n => n.id !== id));
+    if (typeof id === 'string') dismissNotification(id, authToken);
   };
-  const markRead = (id: number) => setNotifs(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
+  const markRead = (id: string | number) => {
+    setNotifs(ns => ns.map(n => n.id === id ? { ...n, read: true } : n));
+    if (typeof id === 'string') markNotificationRead(id, authToken);
+  };
 
   return (
     <div style={{ position: 'relative' }}>

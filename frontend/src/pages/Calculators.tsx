@@ -2,7 +2,7 @@ import { useState, useMemo } from 'react';
 import {
   TrendingUp, TrendingDown, Home, Percent, Calculator,
   BarChart3, PiggyBank, CreditCard, Layers, Building2,
-  ChevronDown, ChevronUp,
+  ChevronDown, ChevronUp, Check,
 } from 'lucide-react';
 import {
   AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer,
@@ -303,7 +303,7 @@ function CalcInfoBox({ info, color, label }: { info: CalcInfo; color: string; la
             <ul style={{ margin: 0, paddingLeft: 0, listStyle: 'none', display: 'flex', flexDirection: 'column', gap: 5, marginBottom: 12 }}>
               {info.keyPoints.map((pt, i) => (
                 <li key={i} style={{ display: 'flex', alignItems: 'flex-start', gap: 7 }}>
-                  <span style={{ color, flexShrink: 0, marginTop: 2, fontSize: 11 }}>✓</span>
+                  <Check size={12} style={{ color, flexShrink: 0, marginTop: 2 }} />
                   <span style={{ fontSize: 12, color: 'var(--tx-3)', lineHeight: 1.5 }}>{pt}</span>
                 </li>
               ))}

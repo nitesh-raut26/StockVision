@@ -412,3 +412,45 @@ export async function fetchHeatmap() {
     return mockHeatmapData;
   }
 }
+
+// ── Analyst targets & news (per-ticker) ───────────────────────────────────────
+
+export interface AnalystTarget {
+  firm:    string;
+  analyst: string;
+  target:  number;
+  upside:  number;
+  rating:  string;
+  date:    string;
+}
+
+export async function fetchAnalystTargets(ticker: string): Promise<AnalystTarget[] | null> {
+  try {
+    const r = await requestJson<{ targets: AnalystTarget[] }>(
+      `/stocks/${encodeURIComponent(ticker)}/analysts`,
+    );
+    return r.targets?.length ? r.targets : null;
+  } catch {
+    return null;
+  }
+}
+
+export interface StockNewsItem {
+  id:        string;
+  headline:  string;
+  source:    string;
+  time:      string;
+  sentiment: string;
+  url:       string;
+}
+
+export async function fetchStockNews(ticker: string): Promise<StockNewsItem[] | null> {
+  try {
+    const r = await requestJson<{ items: StockNewsItem[] }>(
+      `/stocks/${encodeURIComponent(ticker)}/news`,
+    );
+    return r.items?.length ? r.items : null;
+  } catch {
+    return null;
+  }
+}

@@ -6,6 +6,7 @@ import {
   Zap, Shield, BarChart3, Brain, TrendingUp, Layers, Target,
   ArrowRight, Check, Copy, ChevronDown, ChevronUp,
   Globe, Clock, Activity, Key, BookOpen, Users, Rocket,
+  Bot, Smartphone, Landmark, GraduationCap,
 } from 'lucide-react';
 
 /* ── Dark-always palette (same as Footer) ─────────────────────── */
@@ -671,15 +672,15 @@ export default function DeveloperAPI() {
           </div>
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit,minmax(240px,1fr))', gap: 18 }}>
             {[
-              { icon: '🤖', title: 'Robo-Advisors',         desc: 'Power AI stock selection with conviction scores and screener APIs. Run portfolio rebalancing at scale.' },
-              { icon: '📱', title: 'Investment Apps',        desc: 'Embed real-time quotes, AI research, and DCF models into your consumer investment app.' },
-              { icon: '🏦', title: 'Wealth Management',      desc: 'Give advisors institutional-grade tools: portfolio analytics, tax reports, client dashboards.' },
-              { icon: '📊', title: 'Research Platforms',     desc: 'Distribute AI conviction scores and DCF valuations to institutional and retail subscribers.' },
-              { icon: '⚡', title: 'Algo Trading',            desc: 'Feed systematic strategies with conviction scores, momentum signals, and options flow data.' },
-              { icon: '🎓', title: 'Fintech Education',       desc: 'Give students real market data and valuation tools for courses, simulations, and competitions.' },
+              { icon: Bot,           title: 'Robo-Advisors',    desc: 'Power AI stock selection with conviction scores and screener APIs. Run portfolio rebalancing at scale.' },
+              { icon: Smartphone,    title: 'Investment Apps',  desc: 'Embed real-time quotes, AI research, and DCF models into your consumer investment app.' },
+              { icon: Landmark,      title: 'Wealth Management',desc: 'Give advisors institutional-grade tools: portfolio analytics, tax reports, client dashboards.' },
+              { icon: BarChart3,     title: 'Research Platforms',desc: 'Distribute AI conviction scores and DCF valuations to institutional and retail subscribers.' },
+              { icon: Zap,           title: 'Algo Trading',     desc: 'Feed systematic strategies with conviction scores, momentum signals, and options flow data.' },
+              { icon: GraduationCap, title: 'Fintech Education',desc: 'Give students real market data and valuation tools for courses, simulations, and competitions.' },
             ].map(u => (
               <div key={u.title} style={{ background: D.card, border: `1px solid ${D.border}`, borderRadius: 12, padding: '20px 22px' }}>
-                <div style={{ fontSize: 28, marginBottom: 10 }}>{u.icon}</div>
+                <div style={{ marginBottom: 10 }}><u.icon size={26} color={D.brand} /></div>
                 <div style={{ fontSize: 14, fontWeight: 700, color: D.tx, marginBottom: 6 }}>{u.title}</div>
                 <div style={{ fontSize: 13, color: D.tx2, lineHeight: 1.7 }}>{u.desc}</div>
               </div>
