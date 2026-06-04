@@ -1,14 +1,13 @@
 import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { motion, AnimatePresence } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { motion, AnimatePresence, type TargetAndTransition } from 'framer-motion';
 import Pagination from '../components/ui/Pagination';
 import { fetchOpenIPOs, fetchUpcomingIPOs, fetchListedIPOs, fetchSMEIPOs } from '../lib/api';
 
 const PER_PAGE = 10;
 import {
-  TrendingUp, TrendingDown, Calendar, Zap, Star,
-  ChevronUp, ChevronDown, AlertCircle, ArrowRight, Shield,
+  TrendingUp, Calendar, Star,
+  ChevronUp, ChevronDown, AlertCircle, ArrowRight, Shield, CheckCircle,
 } from 'lucide-react';
 import { useIsMobile } from '../hooks/useBreakpoint';
 
@@ -145,7 +144,6 @@ const CONNECTED_BROKERS = [
 ];
 
 export default function IPOTracker() {
-  const navigate = useNavigate();
   const isMobile = useIsMobile();
 
   // ── Live data from /ipo/* — falls back to the demo arrays when offline ──
@@ -212,7 +210,7 @@ export default function IPOTracker() {
         {/* Tab bar */}
         <div style={{ display: 'flex', gap: 0, borderBottom: '1px solid var(--border)', overflowX: 'auto', scrollbarWidth: 'none' }}>
           {([
-            ['open',     'Open Now 🔴'],
+            ['open',     'Open Now'],
             ['upcoming', 'Upcoming'],
             ['listed',   'Recently Listed'],
             ['sme',      'SME / Emerge'],
@@ -380,7 +378,7 @@ export default function IPOTracker() {
                     {listedRows.map((ipo, i) => (
                       <motion.tr key={ipo.company} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}
                         style={{ borderBottom: '1px solid var(--border)', cursor: 'pointer' }}
-                        whileHover={{ background: 'rgba(244,117,32,0.04)' } as any}>
+                        whileHover={{ background: 'rgba(244,117,32,0.04)' } as TargetAndTransition}>
                         <td style={{ padding: '14px 16px' }}>
                           <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
                             <span style={{ fontSize: 20 }}>{ipo.logo}</span>
@@ -498,7 +496,7 @@ export default function IPOTracker() {
                     {ELSS_FUNDS.sort((a, b) => b.returns3y - a.returns3y).map((fund, i) => (
                       <motion.tr key={fund.name} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
                         style={{ borderBottom: '1px solid var(--border)' }}
-                        whileHover={{ background: 'rgba(244,117,32,0.04)' } as any}>
+                        whileHover={{ background: 'rgba(244,117,32,0.04)' } as TargetAndTransition}>
                         <td style={{ padding: '14px 14px' }}>
                           <div style={{ fontSize: 13.5, fontWeight: 700, color: 'var(--tx)', marginBottom: 2 }}>{fund.name}</div>
                           <div style={{ fontSize: 11.5, color: 'var(--tx-3)' }}>{fund.amc} · {fund.fundManager}</div>
@@ -537,7 +535,7 @@ export default function IPOTracker() {
             className="glass-card" style={{ width: '100%', maxWidth: 380, padding: 24, boxSizing: 'border-box' }}>
             {applySuccess ? (
               <div style={{ textAlign: 'center', padding: '12px 0' }}>
-                <div style={{ fontSize: 40, marginBottom: 12 }}>✅</div>
+                <div style={{ marginBottom: 12, display: 'flex', justifyContent: 'center' }}><CheckCircle size={40} color="var(--gain)" /></div>
                 <div style={{ fontSize: 16, fontWeight: 800, color: 'var(--gain)', marginBottom: 6 }}>Application Initiated</div>
                 <div style={{ fontSize: 13, color: 'var(--tx-3)', lineHeight: 1.6 }}>
                   Redirecting to <strong style={{ color: 'var(--tx)' }}>{applySuccess}</strong> to complete your ASBA application for <strong style={{ color: 'var(--tx)' }}>{applyModal.company}</strong>.

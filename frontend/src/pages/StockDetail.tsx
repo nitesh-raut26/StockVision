@@ -320,7 +320,6 @@ export default function StockDetail() {
   const chartColor  = positive ? '#2db562' : '#e53935';
 
   /* ─── TradingView chart refs ─────────────────────────────────── */
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const tvSeriesRef = useRef<ISeriesApi<'Area'> | null>(null);
 
   /* ─── Real-time WebSocket prices ─────────────────────────────── */

@@ -186,8 +186,8 @@ export default function FiiDiiWidget() {
           <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>
             {([
               { id: 'both', label: 'Both' },
-              { id: 'fii',  label: '🌐 FII' },
-              { id: 'dii',  label: '🏦 DII' },
+              { id: 'fii',  label: 'FII' },
+              { id: 'dii',  label: 'DII' },
             ] as { id: FiiDiiMode; label: string }[]).map(m => (
               <button key={m.id} onClick={() => setMode(m.id)}
                 style={{ padding: '3px 10px', borderRadius: 6, fontSize: 11.5, fontWeight: 600, cursor: 'pointer', border: mode === m.id ? '1px solid var(--border-brand)' : '1px solid var(--border)', background: mode === m.id ? 'var(--brand-dim)' : 'transparent', color: mode === m.id ? 'var(--brand)' : 'var(--tx-3)', fontFamily: 'inherit', transition: 'all 150ms' }}>
