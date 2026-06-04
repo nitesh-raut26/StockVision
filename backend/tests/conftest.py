@@ -19,7 +19,7 @@ from app.core.database import Base, AsyncSessionLocal, engine
 from app.api.deps import get_db
 
 
-@pytest_asyncio.fixture(scope="session", autouse=True, loop_scope="session")
+@pytest_asyncio.fixture(scope="session", autouse=True)
 async def create_tables():
     """Create all DB tables once for the test session, then drop them."""
     async with engine.begin() as conn:
@@ -29,15 +29,17 @@ async def create_tables():
         await conn.run_sync(Base.metadata.drop_all)
 
 
-@pytest_asyncio.fixture(loop_scope="session")
+@pytest_asyncio.fixture
 async def db_session():
+    """Fresh DB session per test; rolls back after each test for isolation."""
     async with AsyncSessionLocal() as session:
         yield session
         await session.rollback()
 
 
-@pytest_asyncio.fixture(loop_scope="session")
+@pytest_asyncio.fixture
 async def client(db_session: AsyncSession):
+    """HTTP test client with DB session dependency overridden per test."""
     async def _override_get_db():
         yield db_session
 
