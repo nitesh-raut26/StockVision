@@ -151,6 +151,76 @@ export async function createTransaction(
   });
 }
 
+// ── Immutable ledger & FIFO-derived holdings ─────────────────────────────────
+
+export interface LedgerEntry {
+  id: string;
+  ticker: string;
+  action: 'BUY' | 'SELL';
+  qty: number;
+  price: number;
+  fees: number;
+  trade_date: string;
+  source: string;
+  broker: string | null;
+  recorded_at: string | null;
+}
+
+export interface DerivedHolding {
+  ticker: string;
+  qty: number;
+  avg_cost: number;
+  invested: number;
+  realized_pnl: number;
+  fees: number;
+}
+
+function buildFallbackLedger(): LedgerEntry[] {
+  return mockPortfolio.holdings.map((h, i) => ({
+    id: `demo-${i}`,
+    ticker: h.ticker,
+    action: 'BUY',
+    qty: h.qty,
+    price: h.avgPrice,
+    fees: 0,
+    trade_date: '2026-01-15',
+    source: 'demo',
+    broker: h.broker,
+    recorded_at: null,
+  }));
+}
+
+function buildFallbackDerivedHoldings(): DerivedHolding[] {
+  return mockPortfolio.holdings.map((h) => ({
+    ticker: h.ticker,
+    qty: h.qty,
+    avg_cost: h.avgPrice,
+    invested: h.avgPrice * h.qty,
+    realized_pnl: 0,
+    fees: 0,
+  }));
+}
+
+/** The immutable, append-only trade ledger (newest first). */
+export async function fetchLedger(token?: string | null): Promise<LedgerEntry[]> {
+  if (!token) return buildFallbackLedger();
+  try {
+    return await requestJson<LedgerEntry[]>('/portfolio/transactions/ledger', { token });
+  } catch {
+    return buildFallbackLedger();
+  }
+}
+
+/** Holdings reconstructed FIFO from the immutable ledger (auditable). */
+export async function fetchDerivedHoldings(token?: string | null): Promise<DerivedHolding[]> {
+  if (!token) return buildFallbackDerivedHoldings();
+  try {
+    return await requestJson<DerivedHolding[]>('/portfolio/transactions/derived-holdings', { token });
+  } catch {
+    return buildFallbackDerivedHoldings();
+  }
+}
+
 export async function fetchTaxSummary(token?: string | null) {
   if (!token) return buildFallbackTaxSummary();
 

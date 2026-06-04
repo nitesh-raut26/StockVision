@@ -7,6 +7,8 @@ from app.services.dcf_calculator import compute_dcf
 from app.services.conviction_score import compute_conviction_score, _score_pe, _score_roe, _score_volume
 from app.services.tax_calculator import compute_tax_summary, STCG_RATE, LTCG_RATE
 
+pytestmark = pytest.mark.unit
+
 
 # ── DCF Calculator ────────────────────────────────────────────────────────────
 

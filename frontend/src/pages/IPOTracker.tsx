@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { motion, AnimatePresence, type TargetAndTransition } from 'framer-motion';
 import Pagination from '../components/ui/Pagination';
+import SystemStatus from '../components/ui/SystemStatus';
 import { fetchOpenIPOs, fetchUpcomingIPOs, fetchListedIPOs, fetchSMEIPOs } from '../lib/api';
 
 const PER_PAGE = 10;
@@ -188,9 +189,7 @@ export default function IPOTracker() {
             <h1 style={{ fontSize: 23, fontWeight: 800, color: 'var(--tx)', letterSpacing: '-0.03em', marginBottom: 4 }}>IPO Tracker</h1>
             <p style={{ fontSize: 13, color: 'var(--tx-3)' }}>
               Mainboard · SME/Emerge · ELSS · GMP · Subscription Status
-              <span style={{ color: isLive ? 'var(--gain)' : 'var(--gold)', marginLeft: 8, fontWeight: 600 }}>
-                {isLive ? '● Live' : '● Demo'}
-              </span>
+              <SystemStatus live={isLive} subject="IPO & GMP data" style={{ marginLeft: 8, verticalAlign: 'middle' }} />
             </p>
           </div>
           <div style={{ display: 'flex', gap: 10, flexWrap: 'wrap' }}>

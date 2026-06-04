@@ -19,6 +19,7 @@ import { mockStocks, mockPortfolio, mockNews, generateChartData } from '../data/
 import { useStore } from '../store/useStore';
 import ConvictionBadge from '../components/ui/ConvictionBadge';
 import { createTransaction, fetchPortfolioSummary, computePortfolioHealth } from '../lib/api';
+import LedgerCard from '../components/ui/LedgerCard';
 import FiiDiiWidget from '../components/market/FiiDiiWidget';
 
 /* ─── Static data ──────────────────────────────────────────────── */
@@ -489,6 +490,9 @@ export default function Dashboard() {
           ))}
         </div>
       </motion.div>
+
+      {/* ── IMMUTABLE LEDGER ───────────────────────────────── */}
+      <LedgerCard />
 
       {/* ── AI TOP PICKS ───────────────────────────────────── */}
       <motion.div variants={cardVariant}>

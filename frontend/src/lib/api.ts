@@ -34,12 +34,15 @@
 export { loginWithEmail, registerUser, updateProfile } from './services/authService';
 
 // ── Stocks ────────────────────────────────────────────────────────────────────
-export type { SearchResult, AnalystTarget, StockNewsItem }      from './services/stockService';
+export type { SearchResult, AnalystTarget, StockNewsItem, ConvictionExplain, ConvictionFactorRow } from './services/stockService';
 export {
   fetchIndices,
   searchMarket,
   fetchScreener,
   fetchStockDetails,
+  fetchConvictionExplain,
+  buildFactorWaterfall,
+  demoConvictionFactors,
   fetchDcf,
   fetchHeatmap,
   fetchAnalystTargets,
@@ -49,10 +52,12 @@ export {
 }                                                               from './services/stockService';
 
 // ── Portfolio ─────────────────────────────────────────────────────────────────
-export type { GoalPayload }                                     from './services/portfolioService';
+export type { GoalPayload, LedgerEntry, DerivedHolding }        from './services/portfolioService';
 export {
   fetchPortfolioSummary,
   createTransaction,
+  fetchLedger,
+  fetchDerivedHoldings,
   fetchTaxSummary,
   fetchGoals,
   saveGoal,

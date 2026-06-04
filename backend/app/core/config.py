@@ -39,6 +39,7 @@ class Settings(BaseSettings):
     port: int = 8000
     cors_origins: List[str] = [
         "http://localhost:5173",
+        "http://localhost:5174",   # Vite dev port used by .claude/launch.json
         "http://localhost:3000",
         "https://stockvision.in",
         "https://www.stockvision.in",
@@ -87,6 +88,12 @@ class Settings(BaseSettings):
     redis_url: str = "redis://localhost:6379"
     redis_ttl_seconds: int = 300
 
+    # ── Market data ──────────────────────────────────────────
+    # Selects the MarketDataProvider implementation (see app/services/market_data).
+    # "nse_yfinance" = NSE public API + yfinance fallback (default, not production-grade).
+    # Swap to a licensed feed by registering a provider and setting this env var.
+    market_data_provider: str = "nse_yfinance"
+
     # ── External APIs ────────────────────────────────────────
     anthropic_api_key: str = ""
     alpha_vantage_key: str = ""
@@ -105,6 +112,11 @@ class Settings(BaseSettings):
     # ── Email ────────────────────────────────────────────────
     sendgrid_api_key: str = ""
     from_email: str = "noreply@stockvision.in"
+
+    # ── WhatsApp (Meta Cloud API) ────────────────────────────
+    # Proactive alerts require a DLT-approved template (see task #12).
+    whatsapp_api_token: str = ""
+    whatsapp_phone_number_id: str = ""
 
     # ── Monitoring ───────────────────────────────────────────
     sentry_dsn: str = ""

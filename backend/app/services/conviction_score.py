@@ -2,7 +2,12 @@
 
 import asyncio
 from typing import Any
-from app.services.data_fetcher import get_quote, get_fundamentals
+# Market-data reads go through the provider seam (app/services/market_data).
+from app.services.market_data import get_market_data_provider
+
+_md = get_market_data_provider()
+get_quote = _md.get_quote
+get_fundamentals = _md.get_fundamentals
 
 
 # Weight map for each factor (totals ~40 weighted inputs → normalized to 10)
@@ -241,6 +246,146 @@ def _build_rationale(factors: dict, fundamentals: dict, score: float) -> str:
     return f"Score {score}/10 — " + ", ".join(parts) + "."
 
 
+# ── Conviction 2.0: explainability ───────────────────────────────────────────
+CONVICTION_MODEL_VERSION = "2.0-explainable"
+
+FACTOR_LABELS = {
+    "pe_attractiveness": "P/E valuation",
+    "pb_attractiveness": "P/B valuation",
+    "revenue_growth": "Revenue growth",
+    "roe": "Return on equity",
+    "debt_equity": "Debt / equity",
+    "dividend_yield": "Dividend yield",
+    "price_momentum_1m": "1-month momentum",
+    "price_momentum_3m": "3-month momentum",
+    "volume_signal": "Volume signal",
+    "beta_risk": "Beta (volatility)",
+    "week_52_position": "52-week position",
+    "free_cash_flow": "Free cash flow",
+}
+
+_NEUTRAL = 0.5  # a factor score of 0.5 neither helps nor hurts conviction
+
+
+def _factor_signal(score: float) -> str:
+    if score >= 0.65:
+        return "positive"
+    if score <= 0.45:
+        return "negative"
+    return "neutral"
+
+
+def _input_display(key: str, quote: dict, fundamentals: dict) -> str | None:
+    """Human-readable input value behind each factor (for 'show your work')."""
+    f, q = fundamentals, quote
+
+    def fmt(value, suffix="", scale=1.0, dp=1):
+        return None if value is None else f"{value * scale:.{dp}f}{suffix}"
+
+    if key == "pe_attractiveness":
+        return fmt(f.get("pe_ratio"), "x")
+    if key == "pb_attractiveness":
+        return fmt(f.get("pb_ratio"), "x")
+    if key == "revenue_growth":
+        return fmt(f.get("revenue_growth"), "%")
+    if key == "roe":
+        return fmt(f.get("roe"), "%", 100)
+    if key == "debt_equity":
+        return fmt(f.get("debt_equity"), "")
+    if key == "dividend_yield":
+        return fmt(f.get("dividend_yield"), "%", 100)
+    if key == "price_momentum_1m":
+        v = q.get("change_pct_1m")
+        return fmt(v if v is not None else q.get("change_pct"), "%")
+    if key == "price_momentum_3m":
+        v = q.get("change_pct_3m")
+        return fmt(v if v is not None else q.get("change_pct"), "%")
+    if key == "volume_signal":
+        vol, avg = q.get("volume"), q.get("avg_volume")
+        if vol and avg:
+            return f"{vol / avg:.1f}x avg"
+        return fmt(vol, "", 1, 0)
+    if key == "beta_risk":
+        return fmt(f.get("beta"), "")
+    if key == "week_52_position":
+        p, lo, hi = q.get("price"), q.get("week_52_low"), q.get("week_52_high")
+        if p and lo is not None and hi and hi != lo:
+            return f"{(p - lo) / (hi - lo) * 100:.0f}% of 52w range"
+        return None
+    if key == "free_cash_flow":
+        v = f.get("free_cash_flow")
+        return None if v is None else ("positive" if v > 0 else "negative")
+    return None
+
+
+def build_factor_breakdown(factor_scores: dict, quote: dict, fundamentals: dict) -> list[dict]:
+    """Per-factor attribution: how many of the 10 points each factor contributes,
+    and how far above/below a neutral baseline it pushes the score."""
+    total_weight = sum(WEIGHTS.values()) or 1.0
+    rows = []
+    for key, score in factor_scores.items():
+        weight = WEIGHTS[key]
+        rows.append({
+            "key": key,
+            "label": FACTOR_LABELS.get(key, key),
+            "input": _input_display(key, quote, fundamentals),
+            "weight_pct": round(weight / total_weight * 100, 1),
+            "score": round(score, 2),
+            "contribution_points": round(weight * score / total_weight * 10, 2),
+            "delta_vs_neutral": round(weight * (score - _NEUTRAL) / total_weight * 10, 2),
+            "signal": _factor_signal(score),
+        })
+    rows.sort(key=lambda r: r["contribution_points"], reverse=True)
+    return rows
+
+
+def _data_freshness(quote: dict, fundamentals: dict) -> dict:
+    from datetime import datetime, timezone
+    has_quote = bool(quote.get("price"))
+    has_fund = fundamentals.get("pe_ratio") is not None or fundamentals.get("roe") is not None
+    return {
+        "as_of": datetime.now(timezone.utc).isoformat(),
+        "quote": {"status": "live" if has_quote else "unavailable", "max_staleness_seconds": 300},
+        "fundamentals": {"status": "live" if has_fund else "unavailable", "max_staleness_seconds": 3600},
+    }
+
+
+def explain_conviction_score(quote: dict, fundamentals: dict) -> dict[str, Any]:
+    """Conviction 2.0 — the score plus a full, auditable explanation: per-factor
+    attribution, top drivers/drags, data freshness, and the model version.
+    Labelled quantitative research (not investment advice)."""
+    base = compute_conviction_score(quote, fundamentals)
+    breakdown = build_factor_breakdown(base["factors"], quote, fundamentals)
+    drivers = [r for r in breakdown if r["signal"] == "positive"][:3]
+    drags = sorted(
+        (r for r in breakdown if r["signal"] == "negative"),
+        key=lambda r: r["delta_vs_neutral"],
+    )[:3]
+    return {
+        **base,
+        "model_version": CONVICTION_MODEL_VERSION,
+        "breakdown": breakdown,
+        "drivers": [
+            {"label": r["label"], "input": r["input"], "contribution_points": r["contribution_points"]}
+            for r in drivers
+        ],
+        "drags": [
+            {"label": r["label"], "input": r["input"], "delta_vs_neutral": r["delta_vs_neutral"]}
+            for r in drags
+        ],
+        "freshness": _data_freshness(quote, fundamentals),
+        "track_record": {
+            "available": False,
+            "note": (
+                "Historical hit-rate by sector/horizon populates once the "
+                "conviction_outcomes backtest harness is live (STOCKVISION_STRATEGY.md §6.1)."
+            ),
+            "horizons_days": [30, 90, 180],
+        },
+        "disclaimer": "Quantitative research signal, not investment advice.",
+    }
+
+
 async def get_conviction_score(ticker: str) -> dict[str, Any]:
     """Async entry point: fetch data and compute score."""
     quote, fundamentals = await asyncio.gather(
@@ -251,3 +396,12 @@ async def get_conviction_score(ticker: str) -> dict[str, Any]:
     from datetime import datetime, timezone
     result["last_updated"] = datetime.now(timezone.utc).isoformat()
     return result
+
+
+async def get_conviction_explanation(ticker: str) -> dict[str, Any]:
+    """Async entry point for Conviction 2.0 — fetch data, return the full payload."""
+    quote, fundamentals = await asyncio.gather(
+        get_quote(ticker),
+        get_fundamentals(ticker),
+    )
+    return explain_conviction_score(quote, fundamentals)

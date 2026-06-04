@@ -1,6 +1,7 @@
 """Aggregate all v1 route modules into a single router."""
 
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
+from app.api.entitlements import require_plan
 from app.api.v1.routes import (
     auth,
     stocks,
@@ -40,7 +41,7 @@ api_router.include_router(auth.router)
 api_router.include_router(stocks.router)
 api_router.include_router(screener.router)
 api_router.include_router(portfolio.router)
-api_router.include_router(dcf.router)
+api_router.include_router(dcf.router, dependencies=[Depends(require_plan("premium"))])
 api_router.include_router(mutual_funds.router)
 api_router.include_router(watchlist.router)
 
@@ -49,14 +50,14 @@ api_router.include_router(transactions.router)   # POST /portfolio/transactions
 api_router.include_router(broker.router)         # /broker/connect, /broker/orders
 api_router.include_router(leaderboard.router)    # /leaderboard
 api_router.include_router(research.router)       # /research
-api_router.include_router(family.router)         # /family
-api_router.include_router(ca_portal.router)      # /ca
+api_router.include_router(family.router, dependencies=[Depends(require_plan("premium"))])        # /family
+api_router.include_router(ca_portal.router, dependencies=[Depends(require_plan("enterprise"))])  # /ca
 api_router.include_router(subscriptions.router)  # /subscriptions
 
 # ── Market data & tools ───────────────────────────────────────────────────────
-api_router.include_router(options.router)         # /options/chain, /options/expiries
+api_router.include_router(options.router, dependencies=[Depends(require_plan("premium"))])   # /options/chain, /options/expiries
 api_router.include_router(ipo.router)             # /ipo/open, /ipo/upcoming, /ipo/listed
-api_router.include_router(backtest.router)        # /backtest/run, /backtest/strategies
+api_router.include_router(backtest.router, dependencies=[Depends(require_plan("premium"))])  # /backtest/run, /backtest/strategies
 
 # ── User engagement & B2B ─────────────────────────────────────────────────────
 api_router.include_router(notifications.router)  # /notifications

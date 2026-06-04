@@ -178,6 +178,88 @@ export function buildConvictionBreakdown(factors?: Record<string, number>) {
   ];
 }
 
+// ── Conviction 2.0 (explainability) ───────────────────────────────────────────
+
+export interface ConvictionFactorRow {
+  key: string;
+  label: string;
+  input: string | null;
+  weight_pct: number;
+  score: number;                // 0–1 factor score
+  contribution_points: number;  // points contributed out of 10
+  delta_vs_neutral: number;
+  signal: 'positive' | 'neutral' | 'negative';
+}
+
+export interface ConvictionExplain {
+  ticker: string;
+  score: number;
+  risk: string;
+  rationale?: string;
+  model_version: string;
+  breakdown: ConvictionFactorRow[];
+  drivers: Array<{ label: string; input: string | null; contribution_points: number }>;
+  drags: Array<{ label: string; input: string | null; delta_vs_neutral: number }>;
+  freshness?: {
+    as_of: string;
+    quote: { status: string };
+    fundamentals: { status: string };
+  };
+  track_record?: { available: boolean };
+}
+
+// Mirrors backend WEIGHTS/labels (app/services/conviction_score.py) so the factor
+// waterfall renders client-side when the /explain endpoint is unavailable.
+const FACTOR_WEIGHTS: Record<string, number> = {
+  pe_attractiveness: 0.12, pb_attractiveness: 0.08, revenue_growth: 0.12, roe: 0.1,
+  debt_equity: 0.1, dividend_yield: 0.05, price_momentum_1m: 0.08, price_momentum_3m: 0.08,
+  volume_signal: 0.06, beta_risk: 0.06, week_52_position: 0.08, free_cash_flow: 0.07,
+};
+const FACTOR_LABELS: Record<string, string> = {
+  pe_attractiveness: 'P/E valuation', pb_attractiveness: 'P/B valuation',
+  revenue_growth: 'Revenue growth', roe: 'Return on equity', debt_equity: 'Debt / equity',
+  dividend_yield: 'Dividend yield', price_momentum_1m: '1-month momentum',
+  price_momentum_3m: '3-month momentum', volume_signal: 'Volume signal',
+  beta_risk: 'Beta (volatility)', week_52_position: '52-week position',
+  free_cash_flow: 'Free cash flow',
+};
+
+export function buildFactorWaterfall(factors?: Record<string, number>): ConvictionFactorRow[] {
+  if (!factors) return [];
+  const total = Object.values(FACTOR_WEIGHTS).reduce((a, b) => a + b, 0) || 1;
+  const round = (n: number) => Math.round(n * 100) / 100;
+  const rows = Object.entries(factors)
+    .filter(([k]) => k in FACTOR_WEIGHTS)
+    .map(([key, s]) => {
+      const signal: ConvictionFactorRow['signal'] =
+        s >= 0.65 ? 'positive' : s <= 0.45 ? 'negative' : 'neutral';
+      const w = FACTOR_WEIGHTS[key];
+      return {
+        key,
+        label: FACTOR_LABELS[key] ?? key,
+        input: null,
+        weight_pct: Math.round((w / total) * 1000) / 10,
+        score: round(s),
+        contribution_points: round((w * s / total) * 10),
+        delta_vs_neutral: round((w * (s - 0.5) / total) * 10),
+        signal,
+      };
+    });
+  rows.sort((a, b) => b.contribution_points - a.contribution_points);
+  return rows;
+}
+
+// Deterministic demo factors derived from the score — populates the waterfall in
+// demo mode (clearly badged "Demo") instead of showing an empty card.
+export function demoConvictionFactors(score: number): Record<string, number> {
+  const base = Math.max(0.2, Math.min(0.95, score / 10));
+  const out: Record<string, number> = {};
+  Object.keys(FACTOR_WEIGHTS).forEach((k, i) => {
+    out[k] = Math.max(0.15, Math.min(1, base + ((i % 5) - 2) * 0.07));
+  });
+  return out;
+}
+
 // ── Public API ────────────────────────────────────────────────────────────────
 
 export async function fetchIndices() {
@@ -367,6 +449,20 @@ export async function fetchStockDetails(ticker: string) {
       },
       breakdown: buildConvictionBreakdown(),
     };
+  }
+}
+
+export async function fetchConvictionExplain(
+  ticker: string,
+  token?: string | null,
+): Promise<ConvictionExplain | null> {
+  try {
+    return await requestJson<ConvictionExplain>(
+      `/stocks/conviction/${encodeURIComponent(ticker)}/explain`,
+      { token },
+    );
+  } catch {
+    return null;
   }
 }
 

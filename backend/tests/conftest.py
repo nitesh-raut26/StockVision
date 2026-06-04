@@ -21,12 +21,28 @@ from app.api.deps import get_db
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
 async def create_tables():
-    """Create all DB tables once for the test session, then drop them."""
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.create_all)
+    """Create all DB tables once for the test session, then drop them.
+
+    Degrades gracefully when no database is reachable: pure unit tests (marked
+    ``unit`` — no DB/network) still run, while integration tests fail on their own
+    DB access with a clear error instead of erroring the whole session at setup.
+    """
+    import warnings
+
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.create_all)
+    except Exception as exc:  # pragma: no cover — depends on local env
+        warnings.warn(f"Database unreachable; skipping table setup. Unit tests still run. ({exc})")
+        yield
+        return
+
     yield
-    async with engine.begin() as conn:
-        await conn.run_sync(Base.metadata.drop_all)
+    try:
+        async with engine.begin() as conn:
+            await conn.run_sync(Base.metadata.drop_all)
+    except Exception:  # pragma: no cover
+        pass
 
 
 @pytest_asyncio.fixture

@@ -34,7 +34,14 @@ from typing import Any
 from fastapi import APIRouter, Request, HTTPException, Query
 from pydantic import BaseModel, Field
 
-from app.services.data_fetcher import get_quote, get_bulk_quotes, get_fundamentals, get_news
+# Market-data reads go through the provider seam (app/services/market_data).
+from app.services.market_data import get_market_data_provider
+
+_md = get_market_data_provider()
+get_quote = _md.get_quote
+get_bulk_quotes = _md.get_bulk_quotes
+get_fundamentals = _md.get_fundamentals
+get_news = _md.get_news
 from app.services.indicators_engine import compute_indicators
 
 logger = logging.getLogger(__name__)

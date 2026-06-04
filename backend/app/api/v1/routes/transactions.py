@@ -139,6 +139,24 @@ async def create_transaction(
         charges=payload.charges,
     )
     db.add(tx)
+
+    # Append to the immutable ledger — the source of truth for holdings/tax/audit.
+    # Same transaction as the trade, so they commit atomically.
+    from app.services.ledger_service import record_entry
+    await record_entry(
+        db,
+        user_id=current_user.id,
+        ticker=ticker,
+        action=payload.action,
+        qty=payload.qty,
+        price=payload.price,
+        trade_date=trade_date,
+        fees=payload.charges,
+        source="manual",
+        broker=broker,
+        note=payload.notes,
+    )
+
     await db.commit()
     await db.refresh(tx)
     return _serialize_transaction(tx, broker, payload.exchange, payload.notes)
@@ -164,6 +182,32 @@ async def delete_transaction(
         raise HTTPException(status_code=404, detail="Transaction not found")
     await db.delete(tx)
     await db.commit()
+
+
+@router.get("/ledger")
+async def get_ledger(
+    ticker: Optional[str] = Query(None, description="Filter by ticker"),
+    limit: int = Query(500, ge=1, le=2000),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """The immutable, append-only trade ledger for the current user (newest first)."""
+    from app.services.ledger_service import fetch_ledger, ledger_entry_to_dict
+    entries = await fetch_ledger(db, current_user.id, ticker, limit)
+    return [ledger_entry_to_dict(e) for e in entries]
+
+
+@router.get("/derived-holdings")
+async def get_derived_holdings(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Current holdings reconstructed FIFO from the immutable ledger — the auditable
+    counterpart to the mutable Holding table (they should reconcile)."""
+    from app.services.ledger_service import derive_holdings, fetch_ledger, ledger_entry_to_dict
+    entries = await fetch_ledger(db, current_user.id, limit=5000, ascending=True)
+    holdings = derive_holdings([ledger_entry_to_dict(e) for e in entries])
+    return list(holdings.values())
 
 
 def _serialize_transaction(

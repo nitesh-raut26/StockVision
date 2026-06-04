@@ -23,7 +23,12 @@ import math
 import time
 from typing import Any
 
-from app.services.data_fetcher import get_history, _YF_SEMAPHORE
+# get_history goes through the provider seam; _YF_SEMAPHORE is an NSE/yfinance
+# implementation detail used directly here (not part of the provider interface).
+from app.services.data_fetcher import _YF_SEMAPHORE
+from app.services.market_data import get_market_data_provider
+
+get_history = get_market_data_provider().get_history
 
 logger = logging.getLogger(__name__)
 

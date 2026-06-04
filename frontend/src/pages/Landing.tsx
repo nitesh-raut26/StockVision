@@ -251,7 +251,9 @@ export default function Landing() {
       </nav>
 
       {/* ══ HERO ══ */}
-      <section style={{ position: 'relative', minHeight: isMobile ? 'auto' : '92vh', display: 'flex', alignItems: isMobile ? 'flex-start' : 'center', justifyContent: 'center', overflow: 'hidden' }}>
+      {/* Top-aligned (not vertically centered) so the heading sits ~32px below the
+          navbar on desktop. minHeight keeps room for the floating cards + scroll cue. */}
+      <section style={{ position: 'relative', minHeight: isMobile ? 'auto' : '88vh', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', overflow: 'hidden' }}>
         {/* Animated bg */}
         <div style={{ position: 'absolute', inset: 0, zIndex: 0, pointerEvents: 'none' }}>
           <div className="mesh-orb mesh-orb-1" />
@@ -260,7 +262,7 @@ export default function Landing() {
           <div className="grid-dot-bg" style={{ position: 'absolute', inset: 0 }} />
         </div>
 
-        <motion.div style={{ y: heroY, opacity: heroOpacity, position: 'relative', zIndex: 2, textAlign: 'center', padding: isMobile ? '48px 20px 56px' : 'clamp(80px,12vw,140px) clamp(20px,5vw,40px) 80px', maxWidth: 940, margin: '0 auto', width: '100%' }}>
+        <motion.div style={{ y: heroY, opacity: heroOpacity, position: 'relative', zIndex: 2, textAlign: 'center', padding: isMobile ? '48px 20px 56px' : 'clamp(24px,3vw,36px) clamp(20px,5vw,40px) 72px', maxWidth: 940, margin: '0 auto', width: '100%' }}>
           {/* Badge */}
           <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1, duration: 0.5 }}
             style={{ marginBottom: 28, display: 'inline-flex', alignItems: 'center', gap: 8, padding: '6px 16px 6px 10px', borderRadius: 99, background: 'var(--brand-dim)', border: '1px solid var(--border-brand)', backdropFilter: 'blur(8px)' }}>

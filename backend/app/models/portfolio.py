@@ -57,6 +57,35 @@ class Transaction(UUIDMixin, TimestampMixin, Base):
     portfolio: Mapped["Portfolio"] = relationship(back_populates="transactions")
 
 
+class LedgerEntry(UUIDMixin, TimestampMixin, Base):
+    """Append-only trade ledger — the immutable source of truth for holdings & tax.
+
+    Unlike Transaction (portfolio-scoped, editable/deletable), a LedgerEntry is
+    user-scoped and is NEVER updated or deleted in application code: corrections are
+    *new* reversing entries. Holdings, tax, family roll-ups and CA exports are all
+    derived (FIFO) from this ledger, making every position auditable and rebuildable.
+    """
+
+    __tablename__ = "ledger_entries"
+    __table_args__ = (
+        Index("idx_ledger_user_ticker", "user_id", "ticker"),
+        Index("idx_ledger_user_date", "user_id", "trade_date"),
+    )
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    ticker: Mapped[str] = mapped_column(String(20), index=True)
+    action: Mapped[str] = mapped_column(String(10))  # BUY | SELL
+    qty: Mapped[Decimal] = mapped_column(Numeric(18, 6))
+    price: Mapped[Decimal] = mapped_column(Numeric(15, 2))
+    fees: Mapped[Decimal] = mapped_column(Numeric(15, 2), default=Decimal("0"))
+    trade_date: Mapped[date] = mapped_column(Date)
+    source: Mapped[str] = mapped_column(String(20), default="manual")  # manual | broker_sync | import
+    broker: Mapped[str | None] = mapped_column(String(50), nullable=True)
+    # Dedup key for broker-sync imports (broker's own trade id) — prevents double-counting.
+    external_id: Mapped[str | None] = mapped_column(String(120), nullable=True)
+    note: Mapped[str | None] = mapped_column(Text, nullable=True)
+
+
 class Goal(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "goals"
 

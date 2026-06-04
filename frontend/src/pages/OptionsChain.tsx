@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { fetchOptionsChain, fetchOptionExpiries } from '../lib/api';
 import PlanGate, { usePlanAccess } from '../components/ui/PlanGate';
+import SystemStatus from '../components/ui/SystemStatus';
 import {
   TrendingUp, TrendingDown, ChevronUp, ChevronDown, Activity,
   AlertCircle, BarChart3, Zap, Search,
@@ -160,9 +161,7 @@ export default function OptionsChain() {
             </h1>
             <p style={{ fontSize: 13, color: 'var(--tx-3)' }}>
               NSE F&O · Live Put/Call OI · IV surface · Greeks
-              <span style={{ color: isLive ? 'var(--gain)' : 'var(--gold)', marginLeft: 8, fontWeight: 600 }}>
-                {isLive ? '● Live' : '● Demo'}
-              </span>
+              <SystemStatus live={isLive} subject="Options chain & OI" style={{ marginLeft: 8, verticalAlign: 'middle' }} />
             </p>
           </div>
           {/* PCR signal pill */}

@@ -8,7 +8,10 @@ from pydantic import BaseModel
 from app.api.deps import get_db, get_current_user
 from app.models.user import User
 from app.models.portfolio import WatchlistItem, Alert
-from app.services.data_fetcher import get_bulk_quotes
+# Market-data reads go through the provider seam (app/services/market_data).
+from app.services.market_data import get_market_data_provider
+
+get_bulk_quotes = get_market_data_provider().get_bulk_quotes
 
 router = APIRouter(prefix="/watchlist", tags=["watchlist"])
 

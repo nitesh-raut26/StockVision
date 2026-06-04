@@ -4,8 +4,16 @@ import hashlib
 
 from fastapi import APIRouter, Query, HTTPException
 from app.schemas.stock import StockQuote, ConvictionScoreResponse
-from app.services.data_fetcher import get_quote, get_history, search_stocks, get_bulk_quotes
-from app.services.conviction_score import get_conviction_score
+# Market-data reads go through the provider seam (app/services/market_data); swap the
+# backend via MARKET_DATA_PROVIDER without touching the call sites below.
+from app.services.market_data import get_market_data_provider
+
+_md = get_market_data_provider()
+get_quote = _md.get_quote
+get_history = _md.get_history
+search_stocks = _md.search_stocks
+get_bulk_quotes = _md.get_bulk_quotes
+from app.services.conviction_score import get_conviction_score, get_conviction_explanation
 
 router = APIRouter(prefix="/stocks", tags=["stocks"])
 
@@ -38,6 +46,16 @@ async def search(q: str = Query(..., min_length=1), limit: int = Query(10, ge=1,
 async def conviction(ticker: str):
     try:
         return await get_conviction_score(ticker.upper())
+    except Exception as exc:
+        raise HTTPException(status_code=404, detail=str(exc))
+
+
+@router.get("/conviction/{ticker}/explain")
+async def conviction_explain(ticker: str):
+    """Conviction 2.0 — score with full per-factor attribution, drivers/drags,
+    and data-freshness stamps (the 'show your work' payload)."""
+    try:
+        return await get_conviction_explanation(ticker.upper())
     except Exception as exc:
         raise HTTPException(status_code=404, detail=str(exc))
 

@@ -15,7 +15,10 @@ from app.core.database import engine, Base
 from app.api.v1.router import api_router
 from app.workers.alert_worker import start_alert_worker, stop_alert_worker
 from app.middleware.api_gateway import APIGatewayMiddleware
+from app.middleware.request_id import RequestIDMiddleware
+from app.core.logging_config import configure_logging
 
+configure_logging(level="DEBUG" if settings.debug else "INFO")
 logger = logging.getLogger(__name__)
 
 limiter = Limiter(key_func=get_remote_address, default_limits=["200/minute"])
@@ -123,6 +126,10 @@ app.add_middleware(
     allow_methods=["GET", "POST", "PATCH", "PUT", "DELETE", "OPTIONS"],
     allow_headers=["Authorization", "Content-Type", "Accept", "X-Requested-With"],
 )
+
+# Request correlation IDs — added last so it is the outermost middleware and every
+# log line (and downstream middleware) sees the request_id.
+app.add_middleware(RequestIDMiddleware)
 
 # Routers
 app.include_router(api_router, prefix="/api/v1")

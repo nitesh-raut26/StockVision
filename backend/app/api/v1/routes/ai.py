@@ -45,7 +45,12 @@ from pydantic import BaseModel, Field
 from app.api.deps import get_current_user
 from app.core.config import settings
 from app.models.user import User
-from app.services.data_fetcher import get_quote, get_fundamentals
+# Market-data reads go through the provider seam (app/services/market_data).
+from app.services.market_data import get_market_data_provider
+
+_md = get_market_data_provider()
+get_quote = _md.get_quote
+get_fundamentals = _md.get_fundamentals
 from app.services.indicators_engine import compute_indicators
 
 logger = logging.getLogger(__name__)

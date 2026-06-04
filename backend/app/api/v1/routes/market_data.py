@@ -17,7 +17,12 @@ from fastapi import APIRouter, Depends, Query
 from app.api.deps import get_current_user
 from app.models.user import User
 from app.services.fii_dii_service import fetch_fii_dii, get_fii_dii_summary
-from app.services.data_fetcher import get_bulk_quotes, get_quote
+# Market-data reads go through the provider seam (app/services/market_data).
+from app.services.market_data import get_market_data_provider
+
+_md = get_market_data_provider()
+get_bulk_quotes = _md.get_bulk_quotes
+get_quote = _md.get_quote
 
 logger = logging.getLogger(__name__)
 

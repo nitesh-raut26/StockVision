@@ -632,9 +632,9 @@ async def run_screener(filters: dict) -> list[dict]:
             price_map = await _fetch_index_prices("NIFTY 50")
 
         if not price_map:
-            # Last-resort: use data_fetcher's existing bulk function
-            from app.services.data_fetcher import get_bulk_price_data
-            price_map = await get_bulk_price_data(universe[:50])
+            # Last-resort: bulk price map via the market-data provider seam
+            from app.services.market_data import get_market_data_provider
+            price_map = await get_market_data_provider().get_bulk_price_data(universe[:50])
 
         if not price_map:
             logger.warning("Screener[%s]: no price data — empty result", universe_key)

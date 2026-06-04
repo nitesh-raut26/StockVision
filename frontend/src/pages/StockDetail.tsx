@@ -16,7 +16,9 @@ import {
 import { mockStocks, mockNews, generateChartData } from '../data/mockData';
 import { useStore } from '../store/useStore';
 import ConvictionBadge from '../components/ui/ConvictionBadge';
-import { fetchStockDetails, fetchIncomeStatement, fetchAnalystTargets, fetchStockNews, type IncomeStatementRow } from '../lib/api';
+import SystemStatus from '../components/ui/SystemStatus';
+import ConvictionFactors from '../components/ui/ConvictionFactors';
+import { fetchStockDetails, fetchIncomeStatement, fetchAnalystTargets, fetchStockNews, fetchConvictionExplain, buildFactorWaterfall, demoConvictionFactors, type IncomeStatementRow } from '../lib/api';
 import TradingViewChart, { pushTick } from '../components/charts/TradingViewChart';
 import type { AreaPoint } from '../components/charts/TradingViewChart';
 import type { ISeriesApi } from 'lightweight-charts';
@@ -253,6 +255,7 @@ export default function StockDetail() {
   const analystsLive = Boolean(analystsQuery.data);
 
   const newsQuery = useQuery({ queryKey: ['stock-news', ticker], queryFn: () => fetchStockNews(ticker ?? 'HAL') });
+  const explainQuery = useQuery({ queryKey: ['conviction-explain', ticker], queryFn: () => fetchConvictionExplain(ticker ?? 'HAL') });
   const newsData: typeof stockNews = (newsQuery.data as unknown as typeof stockNews) ?? stockNews;
   const newsLive = Boolean(newsQuery.data);
 
@@ -692,9 +695,7 @@ export default function StockDetail() {
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
               <Target size={14} color="var(--brand)" />
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>Analyst Targets</h3>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: analystsLive ? 'var(--gain)' : 'var(--tx-3)' }}>
-                {analystsLive ? '● Live' : '● Demo'}
-              </span>
+              <SystemStatus live={analystsLive} subject="Analyst targets" />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
               {analystData.map((a, i) => {
@@ -723,9 +724,7 @@ export default function StockDetail() {
               <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                 <DollarSign size={14} color="var(--brand)" />
                 <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>Quarterly Financials</h3>
-                <span style={{ fontSize: 10.5, fontWeight: 700, color: finLive ? 'var(--gain)' : 'var(--tx-3)' }}>
-                  {finLive ? '● Live' : '● Demo'}
-                </span>
+                <SystemStatus live={finLive} subject="Quarterly financials" />
               </div>
               <div style={{ display: 'flex', gap: 4, flexWrap: 'wrap' }}>
                 {[
@@ -812,6 +811,15 @@ export default function StockDetail() {
             ))}
           </motion.div>
 
+          {/* Conviction 2.0 — factor waterfall */}
+          <motion.div variants={cardVariant} className="glass-card" style={{ padding: 22 }}>
+            <ConvictionFactors
+              explain={explainQuery.data ?? null}
+              fallbackRows={buildFactorWaterfall(detailQuery.data?.conviction?.factors ?? demoConvictionFactors(stock.convictionScore))}
+              score={stock.convictionScore}
+            />
+          </motion.div>
+
           {/* Investment Thesis */}
           <motion.div variants={cardVariant} className="glass-card" style={{ padding: 22 }}>
             <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)', marginBottom: 12 }}>Investment Thesis</h3>
@@ -837,9 +845,7 @@ export default function StockDetail() {
           <motion.div variants={cardVariant} className="glass-card" style={{ padding: 22 }}>
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 14 }}>
               <h3 style={{ fontSize: 14, fontWeight: 700, color: 'var(--tx)' }}>Related News</h3>
-              <span style={{ fontSize: 10.5, fontWeight: 700, color: newsLive ? 'var(--gain)' : 'var(--tx-3)' }}>
-                {newsLive ? '● Live' : '● Demo'}
-              </span>
+              <SystemStatus live={newsLive} subject="Related news" />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               {newsData.map((n, i) => (
