@@ -31,8 +31,8 @@ class Settings(BaseSettings):
 
     @property
     def demo_auth_enabled(self) -> bool:
-        """Demo auth is allowed in non-production environments only."""
-        return not self.is_production
+        """Demo auth is only active in development; disabled in test/staging/production."""
+        return self.environment.lower() == "development"
 
     # ── Server ───────────────────────────────────────────────
     host: str = "0.0.0.0"

@@ -1,12 +1,10 @@
 """Shared pytest fixtures for StockVision backend tests."""
 
-import asyncio
 import os
 
-import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine, async_sessionmaker
+from sqlalchemy.ext.asyncio import AsyncSession
 
 # ── Override env before any app imports ──────────────────────────────────────
 os.environ.setdefault("ENVIRONMENT", "test")
@@ -21,15 +19,9 @@ from app.core.database import Base, AsyncSessionLocal, engine
 from app.api.deps import get_db
 
 
-@pytest.fixture(scope="session")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-@pytest_asyncio.fixture(scope="session", autouse=True)
+@pytest_asyncio.fixture(scope="session", autouse=True, loop_scope="session")
 async def create_tables():
+    """Create all DB tables once for the test session, then drop them."""
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
     yield
@@ -37,14 +29,14 @@ async def create_tables():
         await conn.run_sync(Base.metadata.drop_all)
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(loop_scope="session")
 async def db_session():
     async with AsyncSessionLocal() as session:
         yield session
         await session.rollback()
 
 
-@pytest_asyncio.fixture
+@pytest_asyncio.fixture(loop_scope="session")
 async def client(db_session: AsyncSession):
     async def _override_get_db():
         yield db_session
