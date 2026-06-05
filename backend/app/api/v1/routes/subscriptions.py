@@ -253,6 +253,13 @@ async def verify_payment(
             plan_id,
             payload.razorpay_order_id,
         )
+        # Two-sided referral credit: if this user was referred, qualify it now
+        # (idempotent; commits the plan change + referral reward together).
+        from app.services.referral_service import qualify_referral  # noqa: PLC0415
+        try:
+            await qualify_referral(db, current_user.id)
+        except Exception as exc:  # never block a paid upgrade on referral bookkeeping
+            logger.warning("Referral qualify failed (non-fatal): %s", exc)
     else:
         raise HTTPException(status_code=400, detail=f"Unknown plan: {plan_id}")
 

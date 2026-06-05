@@ -14,13 +14,16 @@ export interface ReferralMilestone {
   target:   number;
   reward:   string;
   achieved: boolean;
+  premium_days?: number;
 }
 
 export interface ReferralStats {
   code:       string;
   invited:    number;
+  qualified?: number;
   earnedInr:  number;
   pendingInr: number;
+  premiumDaysEarned?: number;
   milestones: ReferralMilestone[];
 }
 
@@ -30,16 +33,20 @@ export async function fetchReferralStats(token?: string | null): Promise<Referra
     const r = await requestJson<{
       code:        string;
       invited:     number;
+      qualified?:  number;
       earned_inr:  number;
       pending_inr: number;
+      premium_days_earned?: number;
       milestones:  ReferralMilestone[];
     }>('/referrals/me', { token });
 
     return {
       code:       r.code,
       invited:    r.invited,
+      qualified:  r.qualified,
       earnedInr:  r.earned_inr,
       pendingInr: r.pending_inr,
+      premiumDaysEarned: r.premium_days_earned,
       milestones: r.milestones ?? [],
     };
   } catch {

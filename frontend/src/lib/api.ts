@@ -34,11 +34,15 @@
 export { loginWithEmail, registerUser, updateProfile } from './services/authService';
 
 // ── Stocks ────────────────────────────────────────────────────────────────────
-export type { SearchResult, AnalystTarget, StockNewsItem, ConvictionExplain, ConvictionFactorRow } from './services/stockService';
+export type { SearchResult, AnalystTarget, StockNewsItem, ConvictionExplain, ConvictionFactorRow, SavedScreen } from './services/stockService';
 export {
   fetchIndices,
   searchMarket,
   fetchScreener,
+  fetchSavedScreens,
+  saveScreen,
+  deleteSavedScreen,
+  toggleScreenAlert,
   fetchStockDetails,
   fetchConvictionExplain,
   buildFactorWaterfall,
@@ -154,3 +158,7 @@ export {
 // ── Financial statements ──────────────────────────────────────────────────────
 export type { IncomeStatementRow }                            from './services/financialsService';
 export { fetchIncomeStatement }                               from './services/financialsService';
+
+// ── AI assistant (RAG-grounded) ───────────────────────────────────────────────
+export type { GroundedAnswer, GroundedCitation }              from './services/aiService';
+export { askGrounded }                                        from './services/aiService';

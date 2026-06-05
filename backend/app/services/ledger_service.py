@@ -133,3 +133,34 @@ def ledger_entry_to_dict(e: LedgerEntry) -> dict[str, Any]:
         "note": e.note,
         "recorded_at": e.created_at.isoformat() if e.created_at else None,
     }
+
+
+def ledger_to_tax_transactions(entries: list[dict[str, Any]]) -> list[dict[str, Any]]:
+    """Map ledger-entry dicts to the shape tax_calculator.compute_tax_summary expects,
+    so capital-gains tax is computed from the immutable ledger (source of truth)."""
+    return [
+        {
+            "ticker": e["ticker"],
+            "action": str(e["action"]).upper(),
+            "qty": int(round(float(e["qty"]))),
+            "price": float(e["price"]),
+            "transaction_date": e["trade_date"],
+        }
+        for e in entries
+    ]
+
+
+def derived_to_tax_holdings(
+    derived: dict[str, dict[str, Any]], price_map: dict[str, float],
+) -> list[dict[str, Any]]:
+    """Map FIFO-derived holdings + current prices into tax_calculator holding dicts
+    (used for tax-loss-harvesting suggestions)."""
+    return [
+        {
+            "ticker": ticker,
+            "qty": int(round(h["qty"])),
+            "avg_price": h["avg_cost"],
+            "current_price": price_map.get(ticker, h["avg_cost"]),
+        }
+        for ticker, h in derived.items()
+    ]

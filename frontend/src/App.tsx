@@ -34,6 +34,7 @@ const Backtesting     = lazy(() => import('./pages/Backtesting'));
 const NotFound        = lazy(() => import('./pages/NotFound'));
 const LegalPage       = lazy(() => import('./pages/LegalPage'));
 const DeveloperAPI    = lazy(() => import('./pages/DeveloperAPI'));
+const PublicStock     = lazy(() => import('./pages/PublicStock'));
 const AIAssistant     = lazy(() => import('./pages/AIAssistant'));
 const Calculators     = lazy(() => import('./pages/Calculators'));
 
@@ -121,6 +122,7 @@ export default function App() {
                 </Route>
                 <Route path="/legal/:slug" element={<LegalPage />} />
                 <Route path="/developers" element={<DeveloperAPI />} />
+                <Route path="/stock/:ticker" element={<PublicStock />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </Suspense>

@@ -4,6 +4,7 @@ import PlanGate, { usePlanAccess } from '../components/ui/PlanGate';
 import { Briefcase, Upload, Users, FileText, CheckCircle, Download, Loader2, TrendingUp, Clock, AlertTriangle } from 'lucide-react';
 import { useIsMobile } from '../hooks/useBreakpoint';
 import { fetchCaClients } from '../lib/api';
+import { API_BASE_URL } from '../lib/core';
 import { useStore } from '../store/useStore';
 import {
   BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
@@ -61,6 +62,7 @@ export default function CAPortal() {
     queryFn: () => fetchCaClients(authToken),
   });
   const clients = clientsQuery.data?.map((client) => ({
+    id: client.id,
     name: client.name,
     portfolio: client.total_gains + client.total_tax,
     xirr: client.total_gains ? Math.min(35, Math.max(5, client.total_gains / 50000)) : 10,
@@ -264,7 +266,13 @@ export default function CAPortal() {
                             </button>
                           );
                         })}
-                        <button style={{ padding: '6px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--tx-3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
+                        <button
+                          title="Open branded white-label report (print / save as PDF)"
+                          onClick={() => {
+                            const id = (client as { id?: string }).id;
+                            if (id) window.open(`${API_BASE_URL}/ca/clients/${id}/report`, '_blank', 'noopener');
+                          }}
+                          style={{ padding: '6px 10px', borderRadius: 'var(--r-sm)', border: '1px solid var(--border)', background: 'var(--bg-elevated)', color: 'var(--tx-3)', cursor: 'pointer', display: 'flex', alignItems: 'center' }}>
                           <Download size={13} />
                         </button>
                       </div>

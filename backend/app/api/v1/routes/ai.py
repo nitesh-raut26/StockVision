@@ -115,6 +115,11 @@ class ReportRequest(BaseModel):
     detail_level: str = Field("standard", pattern="^(brief|standard|deep)$")
 
 
+class AskRequest(BaseModel):
+    query: str = Field(..., min_length=2, max_length=500)
+    ticker: str | None = None
+
+
 # ── Claude function definitions ────────────────────────────────────────────────
 
 _TOOLS = [
@@ -384,6 +389,24 @@ async def chat(
             "X-Accel-Buffering": "no",
         },
     )
+
+
+@router.post("/ask")
+async def ask(
+    body: AskRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """RAG-grounded Q&A — answers ONLY from retrieved, cited sources ("no citation,
+    no claim"). Works without an Anthropic key (extractive cited answer); uses Claude
+    constrained to the cited context when ANTHROPIC_API_KEY is set."""
+    if not await _check_rate_limit(str(current_user.id), current_user.plan):
+        plan_limit = _PLAN_LIMITS.get(current_user.plan, 3)
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"AI rate limit reached ({plan_limit}/min on {current_user.plan} plan). Upgrade for more.",
+        )
+    from app.services.rag import answer_question  # noqa: PLC0415
+    return await answer_question(body.query, body.ticker)
 
 
 @router.post("/report/{ticker}")

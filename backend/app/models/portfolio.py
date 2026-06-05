@@ -5,7 +5,7 @@ from decimal import Decimal
 
 from sqlalchemy import (
     DateTime, String, Integer, Boolean, Date, ForeignKey, JSON,
-    Text, Numeric, Index,
+    Text, Numeric, Index, UniqueConstraint,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship, validates
 from app.core.database import Base
@@ -130,6 +130,21 @@ class Alert(UUIDMixin, TimestampMixin, Base):
     user: Mapped["User"] = relationship(back_populates="alerts")
 
 
+class SavedScreen(UUIDMixin, TimestampMixin, Base):
+    """A named screener configuration a user can re-run. `alert_enabled` opts the
+    screen into background evaluation (notify when new stocks match)."""
+
+    __tablename__ = "saved_screens"
+    __table_args__ = (
+        Index("idx_saved_screens_user", "user_id"),
+    )
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    name: Mapped[str] = mapped_column(String(120))
+    filters: Mapped[dict] = mapped_column(JSON, default=dict)
+    alert_enabled: Mapped[bool] = mapped_column(Boolean, default=False)
+
+
 class BrokerAccount(UUIDMixin, TimestampMixin, Base):
     __tablename__ = "broker_accounts"
 
@@ -219,3 +234,35 @@ class CAClient(UUIDMixin, TimestampMixin, Base):
     def get_pan(self) -> str:
         from app.core.security import decrypt_field
         return decrypt_field(self._pan_encrypted) or self._pan_encrypted
+
+
+class ReferralCode(UUIDMixin, TimestampMixin, Base):
+    """A user's unique, shareable referral code (created lazily)."""
+
+    __tablename__ = "referral_codes"
+
+    user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), unique=True, index=True)
+    code: Mapped[str] = mapped_column(String(40), unique=True, index=True)
+
+
+class ReferralReward(UUIDMixin, TimestampMixin, Base):
+    """Two-sided referral reward ledger — one row per referred user. (The legacy
+    `Referral` model in extensions.py is unused; this is the active reward ledger.)
+
+    A referred user can only be referred once (unique constraint). Rewards are
+    credited when the referred user qualifies (e.g. first subscription)."""
+
+    __tablename__ = "referral_rewards"
+    __table_args__ = (
+        Index("idx_referral_rewards_referrer", "referrer_user_id"),
+        UniqueConstraint("referred_user_id", name="uq_referral_reward_referred"),
+    )
+
+    referrer_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"), index=True)
+    referred_user_id: Mapped[str] = mapped_column(String(36), ForeignKey("users.id", ondelete="CASCADE"))
+    code_used: Mapped[str] = mapped_column(String(40))
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending | qualified
+    reward_inr: Mapped[int] = mapped_column(Integer, default=0)            # credited to referrer
+    referred_reward_inr: Mapped[int] = mapped_column(Integer, default=0)  # credited to referred user
+    reward_premium_days: Mapped[int] = mapped_column(Integer, default=0)
+    qualified_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)

@@ -210,6 +210,34 @@ async def get_derived_holdings(
     return list(holdings.values())
 
 
+@router.get("/tax")
+async def get_ledger_tax(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Capital-gains tax (STCG/LTCG) + harvesting suggestions, derived from the
+    immutable ledger (auditable source of truth) and current prices."""
+    from app.services.ledger_service import (
+        derive_holdings, derived_to_tax_holdings, fetch_ledger,
+        ledger_entry_to_dict, ledger_to_tax_transactions,
+    )
+    from app.services.market_data import get_market_data_provider
+    from app.services.tax_calculator import compute_tax_summary
+
+    entries = await fetch_ledger(db, current_user.id, limit=5000, ascending=True)
+    dicts = [ledger_entry_to_dict(e) for e in entries]
+    derived = derive_holdings(dicts)
+
+    price_map: dict[str, float] = {}
+    if derived:
+        quotes = await get_market_data_provider().get_bulk_quotes(list(derived.keys()))
+        price_map = {q["ticker"]: float(q.get("price", 0) or 0) for q in quotes if "ticker" in q}
+
+    holdings = derived_to_tax_holdings(derived, price_map)
+    transactions = ledger_to_tax_transactions(dicts)
+    return compute_tax_summary(holdings, transactions)
+
+
 def _serialize_transaction(
     tx: Transaction,
     broker: str,

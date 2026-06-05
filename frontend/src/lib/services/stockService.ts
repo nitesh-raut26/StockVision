@@ -379,6 +379,63 @@ export async function fetchScreener(
   }
 }
 
+// ── Saved screens ─────────────────────────────────────────────────────────────
+
+export interface SavedScreen {
+  id: string;
+  name: string;
+  filters: Record<string, unknown>;
+  alert_enabled: boolean;
+}
+
+export async function fetchSavedScreens(token?: string | null): Promise<SavedScreen[]> {
+  if (!token) return [];
+  try {
+    return await requestJson<SavedScreen[]>('/screener/saved', { token });
+  } catch {
+    return [];
+  }
+}
+
+export async function saveScreen(
+  name: string,
+  filters: Record<string, unknown>,
+  token?: string | null,
+): Promise<SavedScreen | null> {
+  if (!token) return null;
+  try {
+    return await requestJson<SavedScreen>('/screener/saved', {
+      method: 'POST', token, body: JSON.stringify({ name, filters, alert_enabled: false }),
+    });
+  } catch {
+    return null;
+  }
+}
+
+export async function deleteSavedScreen(id: string, token?: string | null): Promise<void> {
+  if (!token) return;
+  try {
+    await requestJson(`/screener/saved/${id}`, { method: 'DELETE', token });
+  } catch {
+    /* 204 No Content has no body — safe to ignore */
+  }
+}
+
+export async function toggleScreenAlert(
+  id: string,
+  alertEnabled: boolean,
+  token?: string | null,
+): Promise<SavedScreen | null> {
+  if (!token) return null;
+  try {
+    return await requestJson<SavedScreen>(`/screener/saved/${id}`, {
+      method: 'PATCH', token, body: JSON.stringify({ alert_enabled: alertEnabled }),
+    });
+  } catch {
+    return null;
+  }
+}
+
 export async function fetchStockDetails(ticker: string) {
   const fallbackStock = findMockStock(ticker);
 

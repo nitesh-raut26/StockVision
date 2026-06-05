@@ -1,8 +1,12 @@
 """Stock screener routes — V2 with 500+ stock universe."""
 
-from fastapi import APIRouter, Depends, HTTPException
-from app.api.deps import get_current_user
+from fastapi import APIRouter, Depends, HTTPException, status
+from pydantic import BaseModel
+from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.api.deps import get_current_user, get_db
 from app.models.user import User
+from app.models.portfolio import SavedScreen
 from app.schemas.stock import StockScreenerFilter, StockScreenerResult
 from app.services.screener_engine import NSE_500_UNIVERSE, STOCK_META, run_screener
 
@@ -116,3 +120,92 @@ async def preset(
     if preset_name not in presets:
         raise HTTPException(status_code=404, detail=f"Preset '{preset_name}' not found")
     return presets[preset_name]
+
+
+# ── Saved screens ─────────────────────────────────────────────────────────────
+
+class SavedScreenCreate(BaseModel):
+    name: str
+    filters: dict
+    alert_enabled: bool = False
+
+
+class SavedScreenUpdate(BaseModel):
+    alert_enabled: bool
+
+
+class SavedScreenOut(BaseModel):
+    id: str
+    name: str
+    filters: dict
+    alert_enabled: bool
+
+
+def serialize_screen(s: SavedScreen) -> dict:
+    return {"id": s.id, "name": s.name, "filters": s.filters or {}, "alert_enabled": s.alert_enabled}
+
+
+@router.get("/saved", response_model=list[SavedScreenOut])
+async def list_saved_screens(
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    rows = await db.execute(
+        select(SavedScreen)
+        .where(SavedScreen.user_id == current_user.id)
+        .order_by(SavedScreen.created_at.desc())
+    )
+    return [serialize_screen(s) for s in rows.scalars().all()]
+
+
+@router.post("/saved", response_model=SavedScreenOut, status_code=status.HTTP_201_CREATED)
+async def create_saved_screen(
+    payload: SavedScreenCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    screen = SavedScreen(
+        user_id=current_user.id,
+        name=payload.name.strip()[:120] or "Untitled screen",
+        filters=payload.filters,
+        alert_enabled=payload.alert_enabled,
+    )
+    db.add(screen)
+    await db.commit()
+    await db.refresh(screen)
+    return serialize_screen(screen)
+
+
+@router.patch("/saved/{screen_id}", response_model=SavedScreenOut)
+async def update_saved_screen(
+    screen_id: str,
+    payload: SavedScreenUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(SavedScreen).where(SavedScreen.id == screen_id, SavedScreen.user_id == current_user.id)
+    )
+    screen = result.scalar_one_or_none()
+    if screen is None:
+        raise HTTPException(status_code=404, detail="Saved screen not found")
+    screen.alert_enabled = payload.alert_enabled
+    await db.commit()
+    await db.refresh(screen)
+    return serialize_screen(screen)
+
+
+@router.delete("/saved/{screen_id}", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_saved_screen(
+    screen_id: str,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    result = await db.execute(
+        select(SavedScreen).where(SavedScreen.id == screen_id, SavedScreen.user_id == current_user.id)
+    )
+    screen = result.scalar_one_or_none()
+    if screen is None:
+        raise HTTPException(status_code=404, detail="Saved screen not found")
+    await db.delete(screen)
+    await db.commit()

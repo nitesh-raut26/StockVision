@@ -12,6 +12,7 @@ import { fetchScreener } from '../lib/api';
 import { useNavigate } from 'react-router-dom';
 import Dropdown from '../components/ui/Dropdown';
 import { usePlanAccess } from '../components/ui/PlanGate';
+import SavedScreensBar from '../components/ui/SavedScreensBar';
 
 type Tab = 'screener' | 'query' | 'commodities' | 'shareholders';
 type CapFilter = 'all' | 'large' | 'mid' | 'small';
@@ -413,6 +414,21 @@ export default function Screener() {
         {/* ══ SCREENER TAB ══════════════════════════════════════ */}
         {activeTab === 'screener' && (
           <motion.div key="screener" initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }} transition={{ duration: 0.22 }}>
+
+            <SavedScreensBar
+              currentFilters={{ ...filters, capFilter, universe }}
+              onLoad={(f) => {
+                setFilters({
+                  minScore: Number(f.minScore ?? 0), maxPE: Number(f.maxPE ?? 100),
+                  minROCE: Number(f.minROCE ?? 0), maxDebt: Number(f.maxDebt ?? 5),
+                  minPromoter: Number(f.minPromoter ?? 0), minRevGrowth: Number(f.minRevGrowth ?? -50),
+                  sector: String(f.sector ?? ''),
+                });
+                if (f.capFilter) setCapFilter(f.capFilter as CapFilter);
+                if (f.universe) setUniverse(f.universe as 'nifty50' | 'nifty200' | 'nifty500');
+                setPage(1);
+              }}
+            />
 
             {/* Universe selector */}
             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 12, flexWrap: 'wrap' }}>

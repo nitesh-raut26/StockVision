@@ -5,7 +5,7 @@ import io
 from datetime import datetime, timezone
 from typing import Optional, Literal
 from fastapi import APIRouter, Depends, HTTPException, status, Query
-from fastapi.responses import StreamingResponse
+from fastapi.responses import StreamingResponse, HTMLResponse
 from pydantic import BaseModel
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -13,6 +13,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.api.deps import get_db, get_current_user
 from app.models.portfolio import CAClient
 from app.models.user import User
+from app.services.ca_report import build_ca_report, render_ca_report_html
 
 router = APIRouter(prefix="/ca", tags=["ca-portal"])
 
@@ -86,6 +87,33 @@ async def get_client(
     """Return details for a single client."""
     client = await _get_client_or_404(db, current_user.id, client_id)
     return _serialize_client(client)
+
+
+@router.get("/clients/{client_id}/report.json")
+async def client_report_json(
+    client_id: str,
+    firm: Optional[str] = Query(None, description="White-label firm name override"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Structured data behind a client's branded report."""
+    client = await _get_client_or_404(db, current_user.id, client_id)
+    firm_name = firm or current_user.name or "Advisory Firm"
+    return build_ca_report(firm_name, _serialize_client(client).model_dump())
+
+
+@router.get("/clients/{client_id}/report", response_class=HTMLResponse)
+async def client_report_html(
+    client_id: str,
+    firm: Optional[str] = Query(None, description="White-label firm name override"),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Branded, print-ready HTML report — open in a tab, then print / save as PDF."""
+    client = await _get_client_or_404(db, current_user.id, client_id)
+    firm_name = firm or current_user.name or "Advisory Firm"
+    report = build_ca_report(firm_name, _serialize_client(client).model_dump())
+    return HTMLResponse(render_ca_report_html(report))
 
 
 @router.get("/export/{client_id}")

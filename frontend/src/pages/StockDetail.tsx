@@ -18,6 +18,7 @@ import { useStore } from '../store/useStore';
 import ConvictionBadge from '../components/ui/ConvictionBadge';
 import SystemStatus from '../components/ui/SystemStatus';
 import ConvictionFactors from '../components/ui/ConvictionFactors';
+import ShareButton from '../components/ui/ShareButton';
 import { fetchStockDetails, fetchIncomeStatement, fetchAnalystTargets, fetchStockNews, fetchConvictionExplain, buildFactorWaterfall, demoConvictionFactors, type IncomeStatementRow } from '../lib/api';
 import TradingViewChart, { pushTick } from '../components/charts/TradingViewChart';
 import type { AreaPoint } from '../components/charts/TradingViewChart';
@@ -396,6 +397,7 @@ export default function StockDetail() {
 
         {/* Action buttons */}
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+          <ShareButton ticker={stock.ticker} score={stock.convictionScore} />
           <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
             onClick={() => inWatchlist ? removeFromWatchlist(stock.ticker) : addToWatchlist(stock.ticker)}
             style={{ display: 'flex', alignItems: 'center', gap: 7, padding: '9px 16px', borderRadius: 12, border: inWatchlist ? '1px solid var(--border-brand)' : '1px solid var(--border)', background: inWatchlist ? 'var(--brand-dim)' : 'var(--bg-card)', color: inWatchlist ? 'var(--brand)' : 'var(--tx-2)', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}>
