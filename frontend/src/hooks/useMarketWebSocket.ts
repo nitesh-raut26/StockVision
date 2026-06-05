@@ -20,7 +20,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 
 const API_BASE = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8000/api/v1')
   .replace(/\/$/, '')
-  .replace(/^https?/, 'ws')  // http → ws, https → wss
+  .replace(/^http/, 'ws')    // http → ws, https → wss (replace "http" only so the trailing "s" survives)
   .replace('/api/v1', '');   // WebSocket is at root, not /api/v1
 
 export interface TickerPrice {

@@ -2,7 +2,8 @@
 .env
 .env.local
 .env.*.local
-.env.production
+# .env.production IS committed on purpose — it only holds the public VITE_ backend URL
+# (baked into the client bundle at build time, not a secret). Vercel needs it in the repo.
 
 # Logs
 logs
